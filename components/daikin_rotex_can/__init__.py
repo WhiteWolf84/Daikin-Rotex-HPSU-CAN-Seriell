@@ -152,7 +152,7 @@ sensor_configuration = [
         "type": "select",
         "name": "building_insulation" ,
         "icon": ICON_SUN_SNOWFLAKE_VARIANT,
-        "command": "31 00 FA 01 OC 00 00",
+        "command": "31 00 FA 01 0C 00 00",
         "data_offset": 5,
         "data_size": 1,
         "map": {
