@@ -20,6 +20,9 @@ class TEntity {
 public:
     using THandleFunc = std::function<uint16_t(TMessage const&)>;
     using TUpdateFunc = std::function<std::string(IAccessor const&)>;
+    // NOTE: the value is unsigned. A signed number entity must NOT use a custom
+    // set_lambda, otherwise the sign is lost (negative values collapse to 0).
+    // Signed entities go through Utils::setBytes(), which handles the sign.
     using TSetFunc = std::function<void(TMessage&, uint16_t)>;
     using TVariant = std::variant<uint32_t, uint8_t, float, bool, std::string>;
     using TPostHandleLabda = std::function<void(TEntity*, TEntity::TVariant const&, TEntity::TVariant const&)>;
