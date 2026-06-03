@@ -133,12 +133,15 @@ uint16_t Utils::hex_to_uint16(const std::string& hexStr) {
     return result;
 }
 
-void Utils::setBytes(TMessage& data, uint16_t value, uint8_t offset, uint8_t len) {
+void Utils::setBytes(TMessage& data, int value, uint8_t offset, uint8_t len) {
+    // Use the 16-bit two's-complement representation so signed values
+    // (e.g. cooling_setpoint_adj down to -5.0) are encoded correctly.
+    const uint16_t raw = static_cast<uint16_t>(static_cast<int16_t>(value));
     if (len == 1) {
-        data[offset] = value & 0xFF;
+        data[offset] = raw & 0xFF;
     } else if (len == 2) {
-        data[offset] = (value >> 8) & 0xFF;
-        data[offset + 1] = value & 0xFF;
+        data[offset] = (raw >> 8) & 0xFF;
+        data[offset + 1] = raw & 0xFF;
     } else {
         ESP_LOGE("write", "Invalid len: %d", len);
     }

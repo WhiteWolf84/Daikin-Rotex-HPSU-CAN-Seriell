@@ -1,5 +1,6 @@
 #include "esphome/components/daikin_rotex_can/sensors.h"
 #include "esphome/components/daikin_rotex_can/entity.h"
+#include <cmath>
 
 namespace esphome {
 namespace daikin_rotex_can {
@@ -100,7 +101,7 @@ bool CanBinarySensor::handleValue(uint16_t value, TEntity::TVariant& current, TV
 void CanNumber::control(float value) {
     Utils::log(CAN_NUMBER_TAG, "control(%f), state: %f", value, this->state);
 
-    if (abs(value - this->state) >= 0.001f) {
+    if (std::fabs(value - this->state) >= 0.001f) {
         this->publish_state(value);
         sendSet(m_pCanbus, value * get_config().divider);
     }
