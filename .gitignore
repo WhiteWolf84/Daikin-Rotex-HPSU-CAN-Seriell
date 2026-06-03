@@ -7,3 +7,4 @@ test/esphome-src
 .vscode/
 graphify-out/
 .claude/
+CLAUDE.md
