@@ -45,7 +45,9 @@ public:
     void dump_config() override;
 
     void set_canbus(esphome::esp32_can::ESP32Can* pCanbus);
-    void set_update_interval(uint16_t seconds) {} // dummy
+    // No-op: the polling cadence is driven per-entity (see TEntity), not at
+    // component level. Kept so the generated code can call it unconditionally.
+    void set_update_interval(uint16_t seconds) {}
     void set_project_git_hash(text_sensor::TextSensor* pSensor, std::string const& hash);
     void set_thermal_power_sensor(CanSensor* pSensor);
     void set_thermal_power_sensor_raw(CanSensor* pSensor);
