@@ -5,6 +5,7 @@
 from .de import translations_de
 from .en import translations_en
 from .it import translations_it
+from .it_strict import translations_it_strict
 from .fr import translations_fr
 
 import logging
@@ -16,6 +17,7 @@ SUPPORTED_LANGUAGES = {
     'de': 'Deutsch',
     'en': 'English',
     'it': 'Italiano',
+    'it_strict': 'Italiano (standard manuale)',
     'fr': 'Français',
 }
 
@@ -23,6 +25,7 @@ translations = {
     "de": translations_de,
     "en": translations_en,
     "it": translations_it,
+    "it_strict": translations_it_strict,
     "fr": translations_fr,
     # Add more languages here
 }
