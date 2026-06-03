@@ -36,7 +36,7 @@ public:
     static TMessage str_to_bytes_array8(const std::string& str);
     static std::map<uint16_t, std::string> str_to_map(const std::string& input);
     static uint16_t hex_to_uint16(const std::string& hexStr);
-    static void setBytes(TMessage& data, uint16_t value, uint8_t offset, uint8_t len);
+    static void setBytes(TMessage& data, int value, uint8_t offset, uint8_t len);
 
     template<typename... Args>
     static void log(std::string const& tag, std::string const& str_format, Args... args) {

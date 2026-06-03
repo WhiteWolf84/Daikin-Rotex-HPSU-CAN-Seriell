@@ -70,3 +70,13 @@ TEST(UtilsTest, setBytes) {
 
     EXPECT_EQ("07 12 AF 00 07 C1 00", Utils::to_hex(msg));
 }
+
+TEST(UtilsTest, setBytesSigned) {
+    // Negative values must encode as 16-bit two's complement
+    // (regression: cooling_setpoint_adj = -2.5 -> raw -25 -> FF E7).
+    TMessage msg = {};
+    Utils::setBytes(msg, -25, 0, 2);
+    Utils::setBytes(msg, -1, 2, 1);
+
+    EXPECT_EQ("FF E7 FF 00 00 00 00", Utils::to_hex(msg));
+}
