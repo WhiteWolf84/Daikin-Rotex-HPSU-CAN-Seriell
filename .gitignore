@@ -3,3 +3,7 @@ components/daikin_rotex_can/translations.cpp
 /**/__pycache__
 test/build
 test/esphome-src
+.venv/
+.vscode/
+graphify-out/
+.claude/
