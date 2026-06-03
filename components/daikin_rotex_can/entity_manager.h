@@ -3,6 +3,8 @@
 #include "esphome/components/daikin_rotex_can/sensors.h"
 #include "esphome/components/daikin_rotex_can/entity.h"
 #include <deque>
+#include <string>
+#include <unordered_map>
 
 namespace esphome {
 namespace daikin_rotex_can {
@@ -48,6 +50,7 @@ private:
     TEntity* getNextGetRequestToSend();
 
     std::vector<TEntity*> m_entities;
+    std::unordered_map<std::string, TEntity*> m_entity_by_id; // id -> entity, for O(1) lookup
     esphome::esp32_can::ESP32Can* m_pCanbus;
     uint32_t m_last_handle;
     uint16_t m_delay_between_requests;
