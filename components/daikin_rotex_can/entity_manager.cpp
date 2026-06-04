@@ -6,6 +6,25 @@ namespace daikin_rotex_can {
 
 static const char* TAG = "daikin_rotex_can";
 
+namespace {
+// Casts a (possibly const) entity to the requested type, logging a uniform
+// message when the entity is missing or of the wrong type.
+template<typename T, typename E>
+T* cast_entity(E* pEntity, std::string const& id, char const* type_name, bool log_missing) {
+    if (T* pTyped = dynamic_cast<T*>(pEntity)) {
+        return pTyped;
+    }
+    if (log_missing) {
+        if (pEntity != nullptr) {
+            ESP_LOGE(TAG, "Entity is not a %s: %s", type_name, pEntity->getName().c_str());
+        } else {
+            ESP_LOGE(TAG, "Entity not found (%s): %s", type_name, id.c_str());
+        }
+    }
+    return nullptr;
+}
+} // namespace
+
 TEntityManager::TEntityManager()
 : m_entities()
 , m_pCanbus(nullptr)
@@ -17,6 +36,7 @@ TEntityManager::TEntityManager()
 
 void TEntityManager::add(TEntity* pEntity) {
     m_entities.push_back(pEntity);
+    m_entity_by_id[pEntity->get_id()] = pEntity;
 }
 
 void TEntityManager::removeInvalidRequests() {
@@ -28,104 +48,44 @@ void TEntityManager::removeInvalidRequests() {
         ),
         m_entities.end()
     );
+
+    // Rebuild the lookup index so it stays consistent with m_entities.
+    m_entity_by_id.clear();
+    for (TEntity* pEntity : m_entities) {
+        m_entity_by_id[pEntity->get_id()] = pEntity;
+    }
 }
 
 CanSensor* TEntityManager::get_sensor(std::string const& id) {
-    TEntity* pEntity = get(id);
-    if (CanSensor* pSensor = dynamic_cast<CanSensor*>(pEntity)) {
-        return pSensor;
-    } else if (pEntity) {
-        ESP_LOGE(TAG, "Entity is not a sensor: %s", pEntity->getName().c_str());
-    } else {
-        ESP_LOGE(TAG, "Entity not found: %s", id.c_str());
-    }
-    return nullptr;
+    return cast_entity<CanSensor>(get(id), id, "sensor", true);
 }
 
 CanSensor const* TEntityManager::get_sensor(std::string const& id) const {
-    TEntity const* pEntity = get(id);
-    if (CanSensor const* pSensor = dynamic_cast<CanSensor const*>(pEntity)) {
-        return pSensor;
-    } else if (pEntity) {
-        ESP_LOGE(TAG, "Const Entity is not a sensor: %s", pEntity->getName().c_str());
-    } else {
-        ESP_LOGE(TAG, "Const Entity not found: %s", id.c_str());
-    }
-    return nullptr;
+    return cast_entity<const CanSensor>(get(id), id, "sensor", true);
 }
 
 CanTextSensor* TEntityManager::get_text_sensor(std::string const& id) {
-    TEntity* pEntity = get(id);
-    if (CanTextSensor* pTextSensor = dynamic_cast<CanTextSensor*>(pEntity)) {
-        return pTextSensor;
-    } else if (pEntity) {
-        ESP_LOGE(TAG, "Entity is not a text sensor: %s", pEntity->getName().c_str());
-    } else {
-        ESP_LOGE(TAG, "get_text_sensor() => Entity not found: %s", id.c_str());
-    }
-    return nullptr;
+    return cast_entity<CanTextSensor>(get(id), id, "text sensor", true);
 }
 
 CanTextSensor const* TEntityManager::get_text_sensor(std::string const& id) const {
-    TEntity const* pEntity = get(id);
-    if (CanTextSensor const* pTextSensor = dynamic_cast<CanTextSensor const*>(pEntity)) {
-        return pTextSensor;
-    } else if (pEntity) {
-        ESP_LOGE(TAG, "Entity is not a text sensor: %s", pEntity->getName().c_str());
-    } else {
-        ESP_LOGE(TAG, "const get_text_sensor() => Entity not found: %s", id.c_str());
-    }
-    return nullptr;
+    return cast_entity<const CanTextSensor>(get(id), id, "text sensor", true);
 }
 
 CanBinarySensor const* TEntityManager::get_binary_sensor(std::string const& id) const {
-    TEntity const* pEntity = get(id);
-    if (CanBinarySensor const* pBinarySensor = dynamic_cast<CanBinarySensor const*>(pEntity)) {
-        return pBinarySensor;
-    } else if (pEntity) {
-        ESP_LOGE(TAG, "Entity is not a binary sensor: %s", pEntity->getName().c_str());
-    } else {
-        ESP_LOGE(TAG, "const get_binary_sensor() => Entity not found: %s", id.c_str());
-    }
-    return nullptr;
+    return cast_entity<const CanBinarySensor>(get(id), id, "binary sensor", true);
 }
 
 CanNumber const* TEntityManager::get_number(std::string const& id, bool log_missing) const {
-    TEntity const *pEntity = get(id);
-    if (CanNumber const* pNumber = dynamic_cast<CanNumber const*>(pEntity)) {
-        return pNumber;
-    } else if (log_missing) {
-        if (pEntity) {
-            ESP_LOGE(TAG, "Entity is not a number: %s", pEntity->getName().c_str());
-        } else {
-            ESP_LOGE(TAG, "const get_number() => Entity not found: %s", id.c_str());
-        }
-    }
-    return nullptr;
+    return cast_entity<const CanNumber>(get(id), id, "number", log_missing);
 }
 
 CanSelect* TEntityManager::get_select(std::string const& id) {
-    TEntity *pEntity = get(id);
-    if (CanSelect* pSelect = dynamic_cast<CanSelect*>(pEntity)) {
-        return pSelect;
-    } else if (pEntity) {
-        ESP_LOGE(TAG, "Entity is not a select: %s", pEntity->getName().c_str());
-    } else {
-        ESP_LOGE(TAG, "toSelect() => Entity not found: %s", id.c_str());
-    }
-    return nullptr;
+    return cast_entity<CanSelect>(get(id), id, "select", true);
 }
 
 CanSelect const* TEntityManager::get_select(std::string const& id) const {
-    TEntity const *pEntity = get(id);
-    if (CanSelect const* pSelect = dynamic_cast<CanSelect const*>(pEntity)) {
-        return pSelect;
-    } else if (pEntity) {
-        ESP_LOGE(TAG, "Entity is not a select: %s", pEntity->getName().c_str());
-    } else {
-        ESP_LOGE(TAG, "const get_select() => Entity not found: %s", id.c_str());
-    }
-    return nullptr;
+    return cast_entity<const CanSelect>(get(id), id, "select", true);
 }
 
 bool TEntityManager::sendNextPendingRequest() {
@@ -180,21 +140,13 @@ void TEntityManager::handle(uint32_t can_id, TMessage const& responseData) {
 }
 
 TEntity* TEntityManager::get(std::string const& id) {
-    for (auto pEntity: m_entities) {
-        if (pEntity->get_id() == id) {
-            return pEntity;
-        }
-    }
-    return nullptr;
+    const auto it = m_entity_by_id.find(id);
+    return it != m_entity_by_id.end() ? it->second : nullptr;
 }
 
 TEntity const* TEntityManager::get(std::string const& id) const {
-    for (auto pEntity: m_entities) {
-        if (pEntity->get_id() == id) {
-            return pEntity;
-        }
-    }
-    return nullptr;
+    const auto it = m_entity_by_id.find(id);
+    return it != m_entity_by_id.end() ? it->second : nullptr;
 }
 
 TEntity* TEntityManager::getNextGetRequestToSend() {
