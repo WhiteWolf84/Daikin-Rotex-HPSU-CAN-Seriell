@@ -78,6 +78,10 @@ TEST(UtilsTest, hex_to_uint16) {
     EXPECT_EQ(5, Utils::hex_to_uint16("0x05"));
     EXPECT_EQ(167, Utils::hex_to_uint16("A7"));
     EXPECT_EQ(43780, Utils::hex_to_uint16("0xAB04"));
+    EXPECT_EQ(0xFFFF, Utils::hex_to_uint16("FFFF"));
+    // Invalid / empty input parses to 0 instead of leaving garbage or throwing.
+    EXPECT_EQ(0, Utils::hex_to_uint16(""));
+    EXPECT_EQ(0, Utils::hex_to_uint16("zz"));
 }
 
 TEST(UtilsTest, setBytes) {

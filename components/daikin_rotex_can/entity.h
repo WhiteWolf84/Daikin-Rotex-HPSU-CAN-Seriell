@@ -25,7 +25,7 @@ public:
     // Signed entities go through Utils::setBytes(), which handles the sign.
     using TSetFunc = std::function<void(TMessage&, uint16_t)>;
     using TVariant = std::variant<uint32_t, uint8_t, float, bool, std::string>;
-    using TPostHandleLabda = std::function<void(TEntity*, TEntity::TVariant const&, TEntity::TVariant const&)>;
+    using TPostHandleLambda = std::function<void(TEntity*, TEntity::TVariant const&, TEntity::TVariant const&)>;
 
     struct TEntityArguments {
         EntityBase* pEntity;
@@ -134,11 +134,11 @@ public:
 
     void set_entity(std::string const& name, TEntityArguments&& arg, IAccessor const* accessor) {
         m_config = std::move(arg);
-        m_expected_reponse = TEntity::calculate_reponse(m_config.command);
+        m_expected_response = TEntity::calculate_response(m_config.command);
         m_pAccessor = accessor;
     }
 
-    void set_post_handle(TPostHandleLabda&& func) {
+    void set_post_handle(TPostHandleLambda&& func) {
         m_post_handle_lambda = std::move(func);
     }
 
@@ -165,7 +165,7 @@ public:
     bool isGetInProgress() const;
     uint32_t get_update_interval() const { return m_config.update_interval; }
 
-    static std::array<uint16_t, 7> calculate_reponse(TMessage const& message);
+    static std::array<uint16_t, 7> calculate_response(TMessage const& message);
 
     std::string string() {
         return Utils::format(
@@ -184,11 +184,11 @@ protected:
 
 private:
     IAccessor const* m_pAccessor;
-    std::array<uint16_t, 7> m_expected_reponse;
+    std::array<uint16_t, 7> m_expected_response;
     uint32_t m_last_handle_timestamp;
     uint32_t m_last_get_timestamp;
     uint32_t m_last_value_change_timestamp;
-    TPostHandleLabda m_post_handle_lambda;
+    TPostHandleLambda m_post_handle_lambda;
 };
 
 inline bool TEntity::isGetNeeded() const {

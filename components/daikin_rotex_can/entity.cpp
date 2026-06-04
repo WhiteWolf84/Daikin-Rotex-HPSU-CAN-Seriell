@@ -12,7 +12,7 @@ TEntity::TEntity()
 : m_config()
 , m_pCanbus(nullptr)
 , m_pAccessor(nullptr)
-, m_expected_reponse()
+, m_expected_response()
 , m_last_handle_timestamp(0u)
 , m_last_get_timestamp(0u)
 , m_last_value_change_timestamp(0u)
@@ -20,7 +20,7 @@ TEntity::TEntity()
 {
 }
 
-std::array<uint16_t, 7> TEntity::calculate_reponse(TMessage const& message) {
+std::array<uint16_t, 7> TEntity::calculate_response(TMessage const& message) {
     const uint16_t DC = 0xFFFF;
     std::array<uint16_t, 7> response = {DC, DC, DC, DC, DC, DC, DC};
     if (message[2] == 0xFA) {   // https://github.com/crycode-de/ioBroker.canbus/blob/master/well-known-messages/configs/rotex-hpsu.md
@@ -48,7 +48,7 @@ bool TEntity::isMatch(uint32_t can_id, TMessage const& responseData) const {
 
     if (is_valid) {
         for (uint32_t index = 0; index < responseData.size(); ++index) {
-            if (m_expected_reponse[index] != DC && responseData[index] != m_expected_reponse[index]) {
+            if (m_expected_response[index] != DC && responseData[index] != m_expected_response[index]) {
                 return false;
             }
         }
@@ -157,7 +157,7 @@ bool TEntity::sendSet(esphome::esp32_can::ESP32Can* pCanBus, float value) {
 
 void TEntity::update(uint32_t millis) {
     if (isGetInProgress() && millis > (m_last_get_timestamp + 5 * 1000)) {
-        ESP_LOGE(TAG, "update() sedGet timeout! id: %s", m_config.id.c_str());
+        ESP_LOGE(TAG, "update() sendGet timeout! id: %s", m_config.id.c_str());
     }
 }
 
