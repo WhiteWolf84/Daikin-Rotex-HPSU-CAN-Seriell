@@ -25,6 +25,9 @@ class CanSensor : public sensor::Sensor, public TEntity, public Parented<SensorA
     };
 
 public:
+    static constexpr EntityKind ENTITY_KIND = EntityKind::Sensor;
+    EntityKind kind() const override { return ENTITY_KIND; }
+
     CanSensor();
     CanSensor(std::string const& id);
     void set_range(Range const& range) { m_range = range; }
@@ -49,6 +52,9 @@ class CanTextSensor : public text_sensor::TextSensor, public TEntity, public Par
 public:
     using TRecalculateState = std::function<std::string(EntityBase*, std::string const&)>;
 
+    static constexpr EntityKind ENTITY_KIND = EntityKind::TextSensor;
+    EntityKind kind() const override { return ENTITY_KIND; }
+
     CanTextSensor() = default;
     void set_map(std::string const& str_map) { m_map = Utils::str_to_map(str_map); }
     void set_recalculate_state(TRecalculateState&& lambda) { m_recalculate_state = std::move(lambda); }
@@ -63,6 +69,9 @@ private:
 
 class CanBinarySensor : public binary_sensor::BinarySensor, public TEntity, public Parented<SensorAccessor> {
 public:
+    static constexpr EntityKind ENTITY_KIND = EntityKind::BinarySensor;
+    EntityKind kind() const override { return ENTITY_KIND; }
+
     CanBinarySensor() = default;
 
 protected:
@@ -73,6 +82,9 @@ protected:
 
 class CanNumber : public number::Number, public TEntity, public Parented<SensorAccessor> {
 public:
+    static constexpr EntityKind ENTITY_KIND = EntityKind::Number;
+    EntityKind kind() const override { return ENTITY_KIND; }
+
     CanNumber() = default;
 protected:
     void control(float value) override;
@@ -84,6 +96,9 @@ protected:
 class CanSelect : public select::Select, public TEntity, public Parented<SensorAccessor> {
     using TCustomSelectLambda = std::function<bool(std::string const& id, uint16_t key)>;
 public:
+    static constexpr EntityKind ENTITY_KIND = EntityKind::Select;
+    EntityKind kind() const override { return ENTITY_KIND; }
+
     CanSelect() = default;
     void set_map(std::string const& str_map) { m_map = Utils::str_to_map(str_map); }
     void set_custom_select_lambda(TCustomSelectLambda&& lambda) { m_custom_select_lambda = std::move(lambda); }
@@ -111,6 +126,9 @@ inline std::string CanSelect::findNextByKey(uint16_t value, std::string const& f
 class CanSwitch : public switch_::Switch, public TEntity, public Parented<SensorAccessor> {
     using TCustomSelectLambda = std::function<bool(std::string const& id, uint16_t key)>;
 public:
+    static constexpr EntityKind ENTITY_KIND = EntityKind::Switch;
+    EntityKind kind() const override { return ENTITY_KIND; }
+
     CanSwitch() = default;
 protected:
     virtual void write_state(bool state) override;
