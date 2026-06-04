@@ -110,7 +110,12 @@ TMessage Utils::str_to_bytes_array8(const std::string& str) {
     size_t index = 0;
 
     while (ss >> byte_str && index < byte_array.size()) {
-        byte_array[index++] = static_cast<uint8_t>(std::stoul(byte_str, nullptr, 16));
+        unsigned int value = 0;
+        const char* begin = byte_str.data();
+        const char* end = begin + byte_str.size();
+        if (std::from_chars(begin, end, value, 16).ec == std::errc()) {
+            byte_array[index++] = static_cast<uint8_t>(value);
+        }
     }
 
     return byte_array;
@@ -137,12 +142,13 @@ std::map<uint16_t, std::string> Utils::str_to_map(const std::string& input) {
 }
 
 uint16_t Utils::hex_to_uint16(const std::string& hexStr) {
-    uint16_t result;
-    std::stringstream ss;
-
-    ss << std::hex << hexStr;
-    ss >> result;
-
+    const char* begin = hexStr.data();
+    const char* end = begin + hexStr.size();
+    if (hexStr.size() >= 2 && begin[0] == '0' && (begin[1] == 'x' || begin[1] == 'X')) {
+        begin += 2; // std::from_chars(base 16) does not accept a "0x" prefix
+    }
+    uint16_t result = 0; // stays 0 on parse failure (no exceptions, no locale)
+    std::from_chars(begin, end, result, 16);
     return result;
 }
 
