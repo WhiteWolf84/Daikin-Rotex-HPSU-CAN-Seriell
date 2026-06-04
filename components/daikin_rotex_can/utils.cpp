@@ -2,6 +2,8 @@
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
 #include <iomanip>
+#include <charconv>
+#include <cstdio>
 //#include <cctype>
 
 namespace esphome {
@@ -34,8 +36,8 @@ std::vector<std::string> Utils::split(std::string const& str) {
 }
 
 std::string Utils::to_hex(uint32_t value) {
-    char hex_string[20];
-    sprintf(hex_string, "0x%02X", value);
+    char hex_string[16];
+    std::snprintf(hex_string, sizeof(hex_string), "0x%02X", value);
     return std::string(hex_string);
 }
 
@@ -63,10 +65,21 @@ TMessage Utils::str_to_bytes(const std::string& str) {
     std::stringstream ss(str);
     std::string byteStr;
 
-    uint8_t index = 0;
-    while (ss >> byteStr) {
-        const uint8_t byte = static_cast<uint8_t>(std::stoi(byteStr, nullptr, 16));
-        bytes[index++] = byte;
+    // Bound the write to the fixed buffer (extra tokens are ignored, not
+    // written past the end), and parse without exceptions: std::from_chars
+    // never throws, so malformed input can't abort the firmware.
+    size_t index = 0;
+    while (ss >> byteStr && index < bytes.size()) {
+        const char* begin = byteStr.data();
+        const char* end = begin + byteStr.size();
+        if (byteStr.size() >= 2 && begin[0] == '0' && (begin[1] == 'x' || begin[1] == 'X')) {
+            begin += 2; // std::from_chars(base 16) does not accept a "0x" prefix
+        }
+        unsigned int value = 0;
+        const auto [ptr, ec] = std::from_chars(begin, end, value, 16);
+        if (ec == std::errc() && ptr == end) {
+            bytes[index++] = static_cast<uint8_t>(value);
+        }
     }
 
     return bytes;
