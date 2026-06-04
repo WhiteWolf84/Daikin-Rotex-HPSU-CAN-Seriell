@@ -142,6 +142,14 @@ public:
         m_post_handle_lambda = std::move(func);
     }
 
+    // Mark a raw value as "unavailable": when the device sends exactly this
+    // value (e.g. the 0x8000 sentinel), handle() keeps the previous state
+    // instead of publishing the bogus reading. See issue #153.
+    void set_invalid_value(uint16_t value) {
+        m_invalid_value = value;
+        m_has_invalid_value = true;
+    }
+
     std::list<std::string> const& get_update_entities() {
         return m_config.update_entities;
     }
@@ -189,6 +197,8 @@ private:
     uint32_t m_last_get_timestamp;
     uint32_t m_last_value_change_timestamp;
     TPostHandleLabda m_post_handle_lambda;
+    bool m_has_invalid_value;
+    uint16_t m_invalid_value;
 };
 
 inline bool TEntity::isGetNeeded() const {
