@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esphome/components/daikin_rotex_can/types.h"
+#include "esphome/core/log.h"
 #include <functional>
 #include <memory>
 #include <map>
@@ -48,8 +49,19 @@ public:
     static uint16_t hex_to_uint16(const std::string& hexStr);
     static void setBytes(TMessage& data, int value, uint8_t offset, uint8_t len);
 
+    // True only if the firmware is built with a log level that can actually emit
+    // these messages (DEBUG or finer). When it isn't (e.g. logger.level: WARN in
+    // production), the compiler folds this to `false` and dead-code-eliminates
+    // the whole log() body below, so no formatting is done at all.
+    static constexpr bool logging_enabled() {
+        return ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG;
+    }
+
     template<typename... Args>
     static void log(std::string const& tag, std::string const& str_format, Args... args) {
+        if (!logging_enabled()) {
+            return;
+        }
         log_impl(tag, Utils::format(str_format, args...));
     }
 

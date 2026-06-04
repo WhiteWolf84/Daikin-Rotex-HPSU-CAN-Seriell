@@ -10,7 +10,6 @@ namespace esphome {
 namespace daikin_rotex_can {
 
 std::string Utils::g_log_filter = "";
-static const char* TAG = "Utils";
 
 bool Utils::find(std::string const& haystack, std::string const& needle) {
     auto it = std::search(
@@ -178,8 +177,11 @@ void Utils::log_impl(std::string const& tag, std::string const& formatted) {
         }
     }
     if (found) {
-        std::string final_log = Utils::format("millis: %d|", esphome::millis()) + formatted;
-        ESP_LOGI(tag.c_str(), "%s", final_log.c_str());
+        // Emit under a single fixed tag (the per-message category moves into the
+        // message), so the user's `logger.logs: { daikin_rotex_can: WARN }`
+        // actually silences all of this. DEBUG level lets the global level gate
+        // it too. No intermediate std::string is built for the millis prefix.
+        ESP_LOGD("daikin_rotex_can", "%s|millis: %u|%s", tag.c_str(), esphome::millis(), formatted.c_str());
     }
 }
 
