@@ -584,7 +584,10 @@ sensor_configuration = [
         "icon": "mdi:transmission-tower",
         "command": "31 00 FA C2 FA 00 00",
         "data_offset": 5,
-        "data_size": 2
+        "data_size": 2,
+        # 0x8000 is the Daikin "value unavailable/faulty" sentinel: the counter
+        # otherwise reads a constant 32768 kWh forever (issue #153).
+        "invalid_value": 0x8000
     },
     {
         "type": "sensor",
@@ -2065,6 +2068,9 @@ async def to_code(config):
                         await cg.register_parented(entity, var)
                     case _:
                         raise Exception("Unknown type: " + sens_conf.get("type"))
+
+                if "invalid_value" in sens_conf:
+                    cg.add(entity.set_invalid_value(sens_conf.get("invalid_value")))
 
                 update_interval = yaml_sensor_conf.get(CONF_UPDATE_INTERVAL, None)
                 if update_interval is None:

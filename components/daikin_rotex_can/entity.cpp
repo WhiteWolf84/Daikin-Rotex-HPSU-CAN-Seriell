@@ -17,6 +17,8 @@ TEntity::TEntity()
 , m_last_get_timestamp(0u)
 , m_last_value_change_timestamp(0u)
 , m_post_handle_lambda()
+, m_has_invalid_value(false)
+, m_invalid_value(0u)
 {
 }
 
@@ -71,7 +73,14 @@ bool TEntity::handle(uint32_t can_id, TMessage const& responseData) {
                         (((responseData[m_config.data_offset] << 8) + responseData[m_config.data_offset + 1])) :
                         (responseData[m_config.data_offset])
                     );
-                valid = handleValue(value, current, previous);
+                if (m_has_invalid_value && value == m_invalid_value) {
+                    // The Daikin reports a fixed sentinel (e.g. 0x8000) when a
+                    // value is unavailable/faulty. Skip it so we keep the last
+                    // good state instead of publishing the bogus reading.
+                    valid = false;
+                } else {
+                    valid = handleValue(value, current, previous);
+                }
             } else {
                 ESP_LOGE(TAG, "handle() => Invalid data size: %d", m_config.data_size);
             }
