@@ -11,7 +11,7 @@ namespace {
 // message when the entity is missing or of the wrong type.
 template<typename T, typename E>
 T* cast_entity(E* pEntity, std::string const& id, char const* type_name, bool log_missing) {
-    if (T* pTyped = dynamic_cast<T*>(pEntity)) {
+    if (T* pTyped = entity_cast<T>(pEntity)) {
         return pTyped;
     }
     if (log_missing) {

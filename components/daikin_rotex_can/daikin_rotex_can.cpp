@@ -111,11 +111,11 @@ void DaikinRotexCanComponent::setup() {
             Utils::to_hex(pEntity->get_config().can_id).c_str(), Utils::to_hex(pEntity->get_config().command).c_str());
 
         pEntity->set_canbus(m_pCanbus);
-        if (CanTextSensor* pTextSensor = dynamic_cast<CanTextSensor*>(pEntity)) {
+        if (CanTextSensor* pTextSensor = entity_cast<CanTextSensor>(pEntity)) {
             pTextSensor->set_recalculate_state([this](EntityBase* pEntity, std::string const& state){
                 return recalculate_state(pEntity, state);
             });
-        } else if (CanSelect* pSelect = dynamic_cast<CanSelect*>(pEntity)) {
+        } else if (CanSelect* pSelect = entity_cast<CanSelect>(pEntity)) {
             pSelect->set_custom_select_lambda([this](std::string const& id, uint16_t key){
                 return on_custom_select(id, key);
             });
@@ -205,7 +205,7 @@ void DaikinRotexCanComponent::updateState(std::string const& id) {
         if (config.update_lambda_set) {
             std::string value = config.update_lambda(*this);
 
-            if (CanTextSensor* pTextSensor = dynamic_cast<CanTextSensor*>(pEntity)) {
+            if (CanTextSensor* pTextSensor = entity_cast<CanTextSensor>(pEntity)) {
                 pTextSensor->publish_state(value);
             } else {
                 ESP_LOGE(TAG, "Unsupported entity type: %s", id.c_str());
@@ -422,9 +422,9 @@ void DaikinRotexCanComponent::dhw_run() {
         float temp1 {70};
         float temp2 {0};
 
-        if (CanNumber const* pNumber = dynamic_cast<CanNumber const*>(pEntity)) {
+        if (CanNumber const* pNumber = entity_cast<CanNumber const>(pEntity)) {
             temp2 = pNumber->state;
-        } else if (CanSelect const* pSelect = dynamic_cast<CanSelect const*>(pEntity)) {
+        } else if (CanSelect const* pSelect = entity_cast<CanSelect const>(pEntity)) {
             temp2 = pSelect->getKey(pSelect->current_option()) / pEntity->get_config().divider;
         }
 
@@ -456,15 +456,15 @@ void DaikinRotexCanComponent::dump() {
     for (auto index = 0; index < m_entity_manager.size(); ++index) {
         TEntity const* pEntity = m_entity_manager.get(index);
         if (pEntity != nullptr) {
-            if (CanSensor const* pSensor = dynamic_cast<CanSensor const*>(pEntity)) {
+            if (CanSensor const* pSensor = entity_cast<CanSensor const>(pEntity)) {
                 ESP_LOGI(TAG, "%s: %f", pSensor->get_name().c_str(), pSensor->get_state());
-            } else if (CanBinarySensor const* pBinarySensor = dynamic_cast<CanBinarySensor const*>(pEntity)) {
+            } else if (CanBinarySensor const* pBinarySensor = entity_cast<CanBinarySensor const>(pEntity)) {
                 ESP_LOGI(TAG, "%s: %d", pBinarySensor->get_name().c_str(), pBinarySensor->state);
-            } else if (CanNumber const* pNumber = dynamic_cast<CanNumber const*>(pEntity)) {
+            } else if (CanNumber const* pNumber = entity_cast<CanNumber const>(pEntity)) {
                 ESP_LOGI(TAG, "%s: %f", pNumber->get_name().c_str(), pNumber->state);
-            } else if (CanTextSensor const* pTextSensor = dynamic_cast<CanTextSensor const*>(pEntity)) {
+            } else if (CanTextSensor const* pTextSensor = entity_cast<CanTextSensor const>(pEntity)) {
                 ESP_LOGI(TAG, "%s: %s", pTextSensor->get_name().c_str(), pTextSensor->get_state().c_str());
-            } else if (CanSelect const* pSelect = dynamic_cast<CanSelect const*>(pEntity)) {
+            } else if (CanSelect const* pSelect = entity_cast<CanSelect const>(pEntity)) {
                 ESP_LOGI(TAG, "%s: %s", pSelect->get_name().c_str(), pSelect->current_option());
             }
         } else {

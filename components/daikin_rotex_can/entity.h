@@ -10,9 +10,21 @@
 #include <stdint.h>
 #include <variant>
 #include <list>
+#include <type_traits>
 
 namespace esphome {
 namespace daikin_rotex_can {
+
+// Identifies the concrete TEntity subclass without RTTI. Each Can* type exposes
+// a matching ENTITY_KIND and overrides kind(); see entity_cast() below.
+enum class EntityKind {
+    Sensor,
+    TextSensor,
+    BinarySensor,
+    Number,
+    Select,
+    Switch,
+};
 
 class TEntity {
     static const uint16_t DC = 0xFFFF; // Don't care
@@ -152,6 +164,9 @@ public:
 
     virtual void update(uint32_t millis);
 
+    // Concrete subclass tag, used by entity_cast() to downcast without RTTI.
+    virtual EntityKind kind() const = 0;
+
     bool isMatch(uint32_t can_id, TMessage const& responseData) const;
     bool handle(uint32_t can_id, TMessage const& responseData);
 
@@ -222,6 +237,17 @@ inline bool TEntity::is_command_configured() const {
         }
     }
     return false;
+}
+
+// RTTI-free replacement for dynamic_cast<T*> between a TEntity pointer and one
+// of the concrete Can* subclasses. T may be const-qualified. Returns nullptr if
+// the runtime kind does not match. static_cast is well-defined here because the
+// kind() check guarantees the object really is a T (the base/derived offset for
+// the multiple-inheritance layout is resolved at compile time).
+template<typename T, typename E>
+T* entity_cast(E* pEntity) {
+    using U = std::remove_const_t<T>;
+    return (pEntity != nullptr && pEntity->kind() == U::ENTITY_KIND) ? static_cast<T*>(pEntity) : nullptr;
 }
 
 }
