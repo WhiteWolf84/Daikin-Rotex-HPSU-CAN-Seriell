@@ -109,6 +109,29 @@ private:
     std::string recalculate_state(EntityBase* pEntity, std::string const& new_state);
     void update_supply_setpoint_regulated();
 
+    // Entities that are read on the hot path (loop()/recalculate_state) are
+    // resolved once in setup() and cached as pointers, so that loop() no longer
+    // hashes strings and runs dynamic_cast on every iteration. The set is fixed
+    // after setup() (removeInvalidRequests has already run), so the pointers
+    // stay valid for the lifetime of the component. Any of them may be nullptr
+    // if the corresponding entity is not configured; call sites null-check.
+    struct EntityCache {
+        CanSensor const* tv = nullptr;
+        CanSensor const* tr = nullptr;
+        CanSensor const* tvbh = nullptr;
+        CanSensor const* flow_rate = nullptr;
+        CanSensor const* dhw_mixer_position = nullptr;
+        CanSensor const* bypass_valve = nullptr;
+        CanSensor const* temperature_outside = nullptr;
+        CanSensor const* tdhw1 = nullptr;
+        CanSensor const* target_supply_temperature = nullptr;
+        CanTextSensor const* error_code = nullptr;
+        CanTextSensor const* betriebs_art = nullptr;
+        CanBinarySensor const* state_compressor = nullptr;
+        CanNumber const* max_target_flow_temp = nullptr;
+    };
+    void resolve_entity_cache();
+
     esphome::daikin_rotex_can::TEntityManager m_entity_manager;
     std::shared_ptr<esphome::canbus::CanbusTrigger> m_canbus_trigger;
     std::shared_ptr<TCanbusAutomation> m_canbus_automation;
@@ -136,6 +159,7 @@ private:
     number::Number* m_supply_setpoint_regulated;
     uint32_t m_last_supply_setpoint_regulated_ts;
     CallHandle m_dhw_set_back_temp_handle;
+    EntityCache m_cache;
 };
 
 inline void DaikinRotexCanComponent::set_canbus(esphome::esp32_can::ESP32Can* pCanbus) {

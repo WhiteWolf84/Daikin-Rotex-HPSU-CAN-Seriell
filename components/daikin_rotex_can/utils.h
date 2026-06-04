@@ -4,6 +4,8 @@
 #include <functional>
 #include <memory>
 #include <map>
+#include <cstdio>
+#include <string>
 
 namespace esphome {
 namespace daikin_rotex_can {
@@ -15,12 +17,20 @@ class Utils {
 public:
     template<typename... Args>
     static std::string format(const std::string& format, Args... args) {
-        const auto size = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
-        const auto buffer = std::make_unique<char[]>(size);
-
-        std::snprintf(buffer.get(), size, format.c_str(), args...);
-
-        return std::string(buffer.get(), buffer.get() + size - 1);
+        // Fast path: format into a stack buffer. The vast majority of log
+        // messages fit, so we avoid a heap allocation entirely. Only the rare
+        // oversized message falls back to an exact-size heap buffer.
+        char stack_buffer[256];
+        const int needed = std::snprintf(stack_buffer, sizeof(stack_buffer), format.c_str(), args...);
+        if (needed < 0) {
+            return std::string();
+        }
+        if (static_cast<size_t>(needed) < sizeof(stack_buffer)) {
+            return std::string(stack_buffer, static_cast<size_t>(needed));
+        }
+        std::string result(static_cast<size_t>(needed), '\0');
+        std::snprintf(result.data(), static_cast<size_t>(needed) + 1, format.c_str(), args...);
+        return result;
     }
 
     template<typename First, typename ... T>

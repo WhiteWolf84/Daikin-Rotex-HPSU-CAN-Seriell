@@ -126,6 +126,7 @@ void DaikinRotexCanComponent::setup() {
     }
 
     m_entity_manager.removeInvalidRequests();
+    resolve_entity_cache();
     const uint32_t size = m_entity_manager.size();
 
     ESP_LOGI(TAG, "entities.size: %d", size);
@@ -137,6 +138,25 @@ void DaikinRotexCanComponent::setup() {
     }
 
     m_project_git_hash_sensor->publish_state(m_project_git_hash);
+}
+
+void DaikinRotexCanComponent::resolve_entity_cache() {
+    // Resolve the hot-path entities exactly once. After removeInvalidRequests()
+    // the entity set is fixed, so these pointers stay valid. A nullptr simply
+    // means the entity is not configured; every call site already null-checks.
+    m_cache.tv                        = m_entity_manager.get_sensor("tv");
+    m_cache.tr                        = m_entity_manager.get_sensor("tr");
+    m_cache.tvbh                      = m_entity_manager.get_sensor("tvbh");
+    m_cache.flow_rate                 = m_entity_manager.get_sensor(FLOW_RATE);
+    m_cache.dhw_mixer_position        = m_entity_manager.get_sensor("dhw_mixer_position");
+    m_cache.bypass_valve              = m_entity_manager.get_sensor("bypass_valve");
+    m_cache.temperature_outside       = m_entity_manager.get_sensor("temperature_outside");
+    m_cache.tdhw1                     = m_entity_manager.get_sensor("tdhw1");
+    m_cache.target_supply_temperature = m_entity_manager.get_sensor("target_supply_temperature");
+    m_cache.error_code                = m_entity_manager.get_text_sensor("error_code");
+    m_cache.betriebs_art              = m_entity_manager.get_text_sensor(BETRIEBS_ART);
+    m_cache.state_compressor          = m_entity_manager.get_binary_sensor(STATE_COMPRESSOR);
+    m_cache.max_target_flow_temp      = m_entity_manager.get_number(MAX_TARGET_FLOW_TEMP, false);
 }
 
 void DaikinRotexCanComponent::on_post_handle(TEntity* pEntity, TEntity::TVariant const& current, TEntity::TVariant const& previous) {
@@ -199,8 +219,8 @@ void DaikinRotexCanComponent::updateState(std::string const& id) {
     } else if (id == "temperature_spread") {
         update_temperature_spread();
     } else if (id == "tv_tvbh_delta") {
-        CanSensor const* tv = m_entity_manager.get_sensor("tv");
-        CanSensor const* tvbh = m_entity_manager.get_sensor("tvbh");
+        CanSensor const* tv = m_cache.tv;
+        CanSensor const* tvbh = m_cache.tvbh;
 
         if (tv == nullptr || tvbh == nullptr) {
             return;
@@ -208,8 +228,8 @@ void DaikinRotexCanComponent::updateState(std::string const& id) {
 
         m_tv_tvbh_delta_sensor->publish_state(tv->state - tvbh->state);
     } else if (id == "tvbh_tr_delta") {
-        CanSensor const* tvbh = m_entity_manager.get_sensor("tvbh");
-        CanSensor const* tr = m_entity_manager.get_sensor("tr");
+        CanSensor const* tvbh = m_cache.tvbh;
+        CanSensor const* tr = m_cache.tr;
 
         if (tvbh == nullptr || tr == nullptr) {
             return;
@@ -217,8 +237,8 @@ void DaikinRotexCanComponent::updateState(std::string const& id) {
 
         m_tvbh_tr_delta_sensor->publish_state(tvbh->state - tr->state);
     } else if (id == "vorlauf_soll_tv_delta") {
-        CanSensor const* vorlauf_soll = m_entity_manager.get_sensor("target_supply_temperature");
-        CanSensor const* tv = m_entity_manager.get_sensor("tv");
+        CanSensor const* vorlauf_soll = m_cache.target_supply_temperature;
+        CanSensor const* tv = m_cache.tv;
 
         if (vorlauf_soll == nullptr || tv == nullptr) {
             return;
@@ -229,9 +249,9 @@ void DaikinRotexCanComponent::updateState(std::string const& id) {
 }
 
 void DaikinRotexCanComponent::update_thermal_power() {
-    CanSensor const* flow_rate = m_entity_manager.get_sensor(FLOW_RATE);
-    CanSensor const* tv = m_entity_manager.get_sensor("tv");
-    CanSensor const* tr = m_entity_manager.get_sensor("tr");
+    CanSensor const* flow_rate = m_cache.flow_rate;
+    CanSensor const* tv = m_cache.tv;
+    CanSensor const* tr = m_cache.tr;
 
     if (flow_rate == nullptr) {
         ESP_LOGE(TAG, "flow_rate is not configured!");
@@ -255,8 +275,8 @@ void DaikinRotexCanComponent::update_thermal_power() {
 }
 
 void DaikinRotexCanComponent::update_temperature_spread() {
-    CanSensor const* tv = m_entity_manager.get_sensor("tv");
-    CanSensor const* tr = m_entity_manager.get_sensor("tr");
+    CanSensor const* tv = m_cache.tv;
+    CanSensor const* tr = m_cache.tr;
 
     if (tv != nullptr && tr != nullptr) {
         const float temperature_spread = tv->state - tr->state;
@@ -476,11 +496,11 @@ void DaikinRotexCanComponent::loop() {
 }
 
 void DaikinRotexCanComponent::update_supply_setpoint_regulated() {
-    CanTextSensor const* p_betriebs_art = m_entity_manager.get_text_sensor(BETRIEBS_ART);
-    CanBinarySensor const* state_compressor = m_entity_manager.get_binary_sensor(STATE_COMPRESSOR);
-    CanNumber const* pMaxTVorlauf = m_entity_manager.get_number(MAX_TARGET_FLOW_TEMP, false);
-    CanSensor const* pTv = m_entity_manager.get_sensor("tv");
-    CanSensor const* pVorlaufSoll = m_entity_manager.get_sensor("target_supply_temperature");
+    CanTextSensor const* p_betriebs_art = m_cache.betriebs_art;
+    CanBinarySensor const* state_compressor = m_cache.state_compressor;
+    CanNumber const* pMaxTVorlauf = m_cache.max_target_flow_temp;
+    CanSensor const* pTv = m_cache.tv;
+    CanSensor const* pVorlaufSoll = m_cache.target_supply_temperature;
 
     if (p_betriebs_art == nullptr || pMaxTVorlauf == nullptr || pTv == nullptr || pVorlaufSoll == nullptr || m_supply_setpoint_regulated == nullptr) {
         return;
@@ -555,17 +575,17 @@ bool DaikinRotexCanComponent::is_modus_heating(std::string const& modus) {
 }
 
 std::string DaikinRotexCanComponent::recalculate_state(EntityBase* pEntity, std::string const& new_state) {
-    CanSensor const* tv = m_entity_manager.get_sensor("tv");
-    CanSensor const* tvbh = m_entity_manager.get_sensor("tvbh");
-    CanSensor const* tr = m_entity_manager.get_sensor("tr");
-    CanSensor const* dhw_mixer_position = m_entity_manager.get_sensor("dhw_mixer_position");
-    CanSensor const* bpv = m_entity_manager.get_sensor("bypass_valve");
-    CanSensor const* flow_rate = m_entity_manager.get_sensor(FLOW_RATE);
-    CanSensor const* ta = m_entity_manager.get_sensor("temperature_outside");
-    CanSensor const* tdhw1 = m_entity_manager.get_sensor("tdhw1");
-    CanTextSensor const* error_code = m_entity_manager.get_text_sensor("error_code");
-    CanTextSensor const* p_betriebs_art = m_entity_manager.get_text_sensor(BETRIEBS_ART);
-    CanBinarySensor const* state_compressor = m_entity_manager.get_binary_sensor(STATE_COMPRESSOR);
+    CanSensor const* tv = m_cache.tv;
+    CanSensor const* tvbh = m_cache.tvbh;
+    CanSensor const* tr = m_cache.tr;
+    CanSensor const* dhw_mixer_position = m_cache.dhw_mixer_position;
+    CanSensor const* bpv = m_cache.bypass_valve;
+    CanSensor const* flow_rate = m_cache.flow_rate;
+    CanSensor const* ta = m_cache.temperature_outside;
+    CanSensor const* tdhw1 = m_cache.tdhw1;
+    CanTextSensor const* error_code = m_cache.error_code;
+    CanTextSensor const* p_betriebs_art = m_cache.betriebs_art;
+    CanBinarySensor const* state_compressor = m_cache.state_compressor;
 
     if (error_code != nullptr && pEntity == error_code && tv != nullptr && tvbh != nullptr && tr != nullptr) {
         const float tv_state = tv->state + m_tv_tvbh_tr_offset.tv;
