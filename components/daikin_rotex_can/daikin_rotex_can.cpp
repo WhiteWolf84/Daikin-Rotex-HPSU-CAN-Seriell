@@ -83,7 +83,7 @@ DaikinRotexCanComponent::DaikinRotexCanComponent()
 , m_betriebsmodus_before_dhw_and_defrosting(Translation::T_STANDBY)
 , m_project_git_hash_sensor(nullptr)
 , m_project_git_hash()
-, m_thermal_power_sensor(new CanSensor("thermal_power")) // Create dummy sensors to avoid nullptr without HA api communicaction. Can be overwritten by the user.
+, m_thermal_power_sensor(new CanSensor("thermal_power")) // Create dummy sensors to avoid nullptr without HA api communication. Can be overwritten by the user.
 , m_thermal_power_raw_sensor(new CanSensor("thermal_power_raw"))
 , m_temperature_spread_sensor(new CanSensor("temperature_spread")) // Used to detect valve malfunctions, even if the sensor has not been defined by the user.
 , m_temperature_spread_raw_sensor(new CanSensor("temperature_spread_raw"))
@@ -187,7 +187,7 @@ void DaikinRotexCanComponent::updateState(std::string const& id) {
             if (CanTextSensor* pTextSensor = dynamic_cast<CanTextSensor*>(pEntity)) {
                 pTextSensor->publish_state(value);
             } else {
-                ESP_LOGE(TAG, "Unsupported entityy type: %s", id.c_str());
+                ESP_LOGE(TAG, "Unsupported entity type: %s", id.c_str());
             }
             return;
         }
