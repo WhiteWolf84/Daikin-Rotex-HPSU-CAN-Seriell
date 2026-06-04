@@ -43,6 +43,24 @@ TEST(UtilsTest, str_to_bytes_array8) {
     EXPECT_EQ(TMessage({0, 35, 77, 88, 99, 222, 255}), Utils::str_to_bytes_array8("00 23 4D 58 63 DE FF"));
 }
 
+TEST(UtilsTest, str_to_bytes) {
+    EXPECT_EQ(TMessage({0x31, 0x00, 0xFA, 0x01, 0x0C, 0x00, 0x00}), Utils::str_to_bytes("31 00 FA 01 0C 00 00"));
+    // "0x" prefixed tokens and short messages (trailing bytes stay zero).
+    EXPECT_EQ(TMessage({0x31, 0xAB, 0x0F, 0x00, 0x00, 0x00, 0x00}), Utils::str_to_bytes("0x31 0xAB 0x0F"));
+}
+
+TEST(UtilsTest, str_to_bytes_is_bounded) {
+    // More than 7 tokens must NOT write past the 7-byte buffer (was a stack overflow).
+    EXPECT_EQ(TMessage({1, 2, 3, 4, 5, 6, 7}), Utils::str_to_bytes("01 02 03 04 05 06 07 08 09 0A"));
+}
+
+TEST(UtilsTest, str_to_bytes_invalid_does_not_throw) {
+    // Malformed input must not abort the firmware (was std::stoi -> throw).
+    EXPECT_NO_THROW({ auto b = Utils::str_to_bytes("01 ZZ 03 GG"); (void)b; });
+    // Non-hex tokens are skipped, valid ones still parsed in order.
+    EXPECT_EQ(TMessage({0x01, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00}), Utils::str_to_bytes("01 ZZ 03"));
+}
+
 TEST(UtilsTest, str_to_map) {
     auto map = Utils::str_to_map("0x01:A|0x05:B|0x09:CD|0x0C:Str1|0x1B:str2|0x38:str3|0x93:str 4");
     EXPECT_EQ("A", map.find(0x01)->second);

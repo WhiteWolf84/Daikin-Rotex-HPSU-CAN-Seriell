@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <algorithm>
 
 namespace esphome {
 namespace daikin_rotex_can {
@@ -526,8 +527,13 @@ void DaikinRotexCanComponent::update_supply_setpoint_regulated() {
 }
 
 void DaikinRotexCanComponent::handle(uint32_t can_id, std::vector<uint8_t> const& data) {
-    TMessage message;
-    std::copy_n(data.begin(), message.size(), message.begin());
+    // A CAN frame carries 0..8 payload bytes (DLC). Never read past the end of
+    // `data`: clamp to the smaller of the frame length and the fixed buffer, and
+    // zero-fill the rest. Copying message.size() unconditionally would over-read
+    // `data` for any frame shorter than 7 bytes (out-of-bounds / UB).
+    TMessage message{};
+    const size_t count = std::min(data.size(), message.size());
+    std::copy_n(data.begin(), count, message.begin());
     m_entity_manager.handle(can_id, message);
 }
 
