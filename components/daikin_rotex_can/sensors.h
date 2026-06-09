@@ -118,7 +118,7 @@ private:
 
 inline std::string CanSelect::findNextByKey(uint16_t value, std::string const& fallback) const { 
     auto it = m_map.findNextByKey(value);
-    return it != m_map.end() ? it->second : Utils::format("INVALID<%f>", value);
+    return it != m_map.end() ? it->second : Utils::format("INVALID<%u>", value);
 };
 
 /////////////////////// CanSwitch ///////////////////////

@@ -41,3 +41,33 @@ TEST(SchedulerTest, AccelerateCallWorks) {
     scheduler.update();
     EXPECT_TRUE(called);
 }
+
+TEST(SchedulerTest, CancelOwnHandleInsideCallbackIsSafe) {
+    // Regression: a callback cancelling its own handle while update() held an
+    // iterator to that element caused a double-erase (UB).
+    auto& scheduler = Scheduler::getInstance();
+
+    bool called = false;
+    CallHandle handle;
+    handle = scheduler.call_later([&]() {
+        called = true;
+        handle.cancel();  // detached already -> must be a harmless no-op
+    }, 0);
+
+    scheduler.update();
+    EXPECT_TRUE(called);
+    EXPECT_FALSE(handle.is_valid());
+}
+
+TEST(SchedulerTest, ScheduleNewCallInsideCallbackIsSafe) {
+    auto& scheduler = Scheduler::getInstance();
+
+    bool nested_called = false;
+    scheduler.call_later([&]() {
+        scheduler.call_later([&]() { nested_called = true; }, 0);
+    }, 0);
+
+    scheduler.update();  // runs the outer call; the nested one may run in this or the next pass
+    scheduler.update();
+    EXPECT_TRUE(nested_called);
+}

@@ -82,7 +82,7 @@ void CanSensor::publish(float state) {
 bool CanTextSensor::handleValue(uint16_t value, TEntity::TVariant& current, TVariant& previous) {
     previous = state;
     auto it = m_map.findByKey(value);
-    current = m_recalculate_state(m_config.pEntity, it != m_map.end() ? it->second : Utils::format("INVALID<%f>", value));
+    current = m_recalculate_state(m_config.pEntity, it != m_map.end() ? it->second : Utils::format("INVALID<%u>", value));
     publish_state(std::get<std::string>(current));
     return true;
 }
@@ -144,13 +144,13 @@ void CanSelect::publish_select_key(uint16_t key) {
     if (it != m_map.end()) {
         publish_state(it->second);
     } else {
-        ESP_LOGE(CAN_SELECT_TAG, "publish_select_key(%s) => Key not found!", key);
+        ESP_LOGE(CAN_SELECT_TAG, "publish_select_key(%u) => Key not found!", key);
     }
 }
 
 bool CanSelect::handleValue(uint16_t value, TEntity::TVariant& current, TVariant& previous) {
     previous = current_option();
-    current = findNextByKey(value, Utils::format("INVALID<%f>", value));
+    current = findNextByKey(value, Utils::format("INVALID<%u>", value));
     publish_state(std::get<std::string>(current));
     return true;
 }
