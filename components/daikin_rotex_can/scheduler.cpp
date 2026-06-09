@@ -79,8 +79,13 @@ void Scheduler::update() {
     auto it = m_later_calls.begin();
     while (it != m_later_calls.end()) {
         if ((int32_t)(current_time - it->execution_time) >= 0) {
-            it->function();
+            // Detach the element before running it: if the callback calls
+            // cancel_call() on its own id (or schedules new calls), the list
+            // mutates while we hold `it`. Erasing first keeps the iterator
+            // valid; cancel on an already-detached id is then a harmless no-op.
+            DelayedCall call = std::move(*it);
             it = m_later_calls.erase(it);
+            call.function();
         } else {
             ++it;
         }
