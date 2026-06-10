@@ -5,6 +5,7 @@
 #include <deque>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace esphome {
 namespace daikin_rotex_can {
@@ -51,6 +52,11 @@ private:
 
     std::vector<TEntity*> m_entities;
     std::unordered_map<std::string, TEntity*> m_entity_by_id; // id -> entity, for O(1) lookup
+    // can_id -> entities listening on it. handle() only scans the bucket of the
+    // incoming frame, so ids with no entities (0x600/0x680/0x780 bursts from the
+    // RoCon panel) cost zero entity iterations. 0x10A frames can match ANY
+    // entity (panel responses), so they still scan m_entities; see handle().
+    std::unordered_map<uint32_t, std::vector<TEntity*>> m_entities_by_can_id;
     esphome::esp32_can::ESP32Can* m_pCanbus;
     uint32_t m_last_handle;
     uint16_t m_delay_between_requests;
