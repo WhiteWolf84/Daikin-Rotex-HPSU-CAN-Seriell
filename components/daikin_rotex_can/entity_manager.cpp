@@ -37,6 +37,7 @@ TEntityManager::TEntityManager()
 void TEntityManager::add(TEntity* pEntity) {
     m_entities.push_back(pEntity);
     m_entity_by_id[pEntity->get_id()] = pEntity;
+    m_entities_by_can_id[pEntity->get_config().can_id].push_back(pEntity);
 }
 
 void TEntityManager::removeInvalidRequests() {
@@ -49,10 +50,12 @@ void TEntityManager::removeInvalidRequests() {
         m_entities.end()
     );
 
-    // Rebuild the lookup index so it stays consistent with m_entities.
+    // Rebuild the lookup indexes so they stay consistent with m_entities.
     m_entity_by_id.clear();
+    m_entities_by_can_id.clear();
     for (TEntity* pEntity : m_entities) {
         m_entity_by_id[pEntity->get_id()] = pEntity;
+        m_entities_by_can_id[pEntity->get_config().can_id].push_back(pEntity);
     }
 }
 
@@ -127,12 +130,31 @@ bool TEntityManager::sendSet(std::string const& request_name, float value) {
 
 void TEntityManager::handle(uint32_t can_id, TMessage const& responseData) {
     bool bHandled = false;
-    for (auto pEntity : m_entities) {
-        if (pEntity->handle(can_id, responseData)) {
-            bHandled = true;
-            break;
+
+    if (can_id == 0x10A) {
+        // RoCon panel responses/sets can match any entity regardless of its
+        // configured can_id (see TEntity::isMatch), so scan them all.
+        for (auto pEntity : m_entities) {
+            if (pEntity->handle(can_id, responseData)) {
+                bHandled = true;
+                break;
+            }
+        }
+    } else {
+        // Any other frame can only match entities configured for exactly this
+        // can_id: scan just that bucket. Ids with no entities (e.g. the
+        // 0x600/0x680/0x780 panel bursts) cost zero iterations.
+        const auto it = m_entities_by_can_id.find(can_id);
+        if (it != m_entities_by_can_id.end()) {
+            for (auto pEntity : it->second) {
+                if (pEntity->handle(can_id, responseData)) {
+                    bHandled = true;
+                    break;
+                }
+            }
         }
     }
+
     m_last_handle = esphome::millis();
     if (!bHandled) {
         Utils::log("unhandled", "can_id<%s> data<%s>", Utils::to_hex(can_id).c_str(), Utils::to_hex(responseData).c_str());
