@@ -95,23 +95,29 @@ bool TEntity::handle(uint32_t can_id, TMessage const& responseData) {
                 m_post_handle_lambda(this, current, previous);
             }
 
-            std::string value;
-            if (std::holds_alternative<uint32_t>(current)) {
-                value = std::to_string(std::get<uint32_t>(current));
-            } else if (std::holds_alternative<uint8_t>(current)) {
-                value = std::to_string(std::get<uint8_t>(current));
-            } else if (std::holds_alternative<float>(current)) {
-                value = std::to_string(std::get<float>(current));
-            } else if (std::holds_alternative<bool>(current)) {
-                value = std::get<bool>(current) ? "on" : "off";
-            } else if (std::holds_alternative<std::string>(current)) {
-                value = std::get<std::string>(current);
-            } else {
-                value = "Unsupported value type!";
-            }
+            // The value-to-string conversion and to_hex() calls below allocate
+            // (std::to_string, stringstream); guard them at the call site since
+            // Utils::log()'s internal logging_enabled() gate only dead-code-
+            // eliminates its own body, not these caller-evaluated arguments.
+            if constexpr (Utils::logging_enabled()) {
+                std::string value;
+                if (std::holds_alternative<uint32_t>(current)) {
+                    value = std::to_string(std::get<uint32_t>(current));
+                } else if (std::holds_alternative<uint8_t>(current)) {
+                    value = std::to_string(std::get<uint8_t>(current));
+                } else if (std::holds_alternative<float>(current)) {
+                    value = std::to_string(std::get<float>(current));
+                } else if (std::holds_alternative<bool>(current)) {
+                    value = std::get<bool>(current) ? "on" : "off";
+                } else if (std::holds_alternative<std::string>(current)) {
+                    value = std::get<std::string>(current);
+                } else {
+                    value = "Unsupported value type!";
+                }
 
-            Utils::log("handle ", "%s<%s> can_id<%s> data<%s> changed<%d>",
-                getName().c_str(), value.c_str(), Utils::to_hex(can_id).c_str(), Utils::to_hex(responseData).c_str(), changed);
+                Utils::log("handle ", "%s<%s> can_id<%s> data<%s> changed<%d>",
+                    getName().c_str(), value.c_str(), Utils::to_hex(can_id).c_str(), Utils::to_hex(responseData).c_str(), changed);
+            }
         }
         m_last_handle_timestamp = esphome::millis();
         return true;
@@ -130,8 +136,10 @@ bool TEntity::sendGet(esphome::esp32_can::ESP32Can* pCanBus) {
 
     pCanBus->send_data(can_id, use_extended_id, { m_config.command.begin(), m_config.command.end() });
 
-    Utils::log("sendGet", "%s can_id<%s> command<%s>",
-        getName().c_str(), Utils::to_hex(can_id).c_str(), Utils::to_hex(m_config.command).c_str());
+    if constexpr (Utils::logging_enabled()) {
+        Utils::log("sendGet", "%s can_id<%s> command<%s>",
+            getName().c_str(), Utils::to_hex(can_id).c_str(), Utils::to_hex(m_config.command).c_str());
+    }
 
     m_last_get_timestamp = esphome::millis();
     return true;
@@ -156,8 +164,10 @@ bool TEntity::sendSet(esphome::esp32_can::ESP32Can* pCanBus, float value) {
     }
 
     pCanBus->send_data(can_id, use_extended_id, { command.begin(), command.end() });
-    Utils::log("sendSet", "name<%s> value<%f> can_id<%s> command<%s>",
-        getName().c_str(), value, Utils::to_hex(can_id).c_str(), Utils::to_hex(command).c_str());
+    if constexpr (Utils::logging_enabled()) {
+        Utils::log("sendSet", "name<%s> value<%f> can_id<%s> command<%s>",
+            getName().c_str(), value, Utils::to_hex(can_id).c_str(), Utils::to_hex(command).c_str());
+    }
 
     sendGet(pCanBus);
 

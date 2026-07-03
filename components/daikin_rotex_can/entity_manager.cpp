@@ -156,7 +156,7 @@ void TEntityManager::handle(uint32_t can_id, TMessage const& responseData) {
     }
 
     m_last_handle = esphome::millis();
-    if (!bHandled) {
+    if (!bHandled && Utils::logging_enabled()) {
         Utils::log("unhandled", "can_id<%s> data<%s>", Utils::to_hex(can_id).c_str(), Utils::to_hex(responseData).c_str());
     }
 }
