@@ -8,6 +8,9 @@
 #include "esphome/components/esp32_can/esp32_can.h"
 #include "esphome/core/component.h"
 #include <list>
+#include <string>
+#include <vector>
+#include <cstdint>
 
 namespace esphome {
 namespace daikin_rotex_can {

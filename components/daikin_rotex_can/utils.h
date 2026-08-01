@@ -7,6 +7,8 @@
 #include <map>
 #include <cstdio>
 #include <string>
+#include <vector>
+#include <cstdint>
 
 namespace esphome {
 namespace daikin_rotex_can {

@@ -2,6 +2,8 @@
 
 #include <sstream>
 #include <map>
+#include <string>
+#include <cstdint>
 
 namespace esphome {
 namespace daikin_rotex_can {

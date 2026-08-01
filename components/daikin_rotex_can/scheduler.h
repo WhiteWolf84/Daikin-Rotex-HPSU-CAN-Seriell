@@ -3,6 +3,7 @@
 #include <atomic>
 #include <list>
 #include <functional>
+#include <cstdint>
 
 namespace esphome {
 namespace daikin_rotex_can {

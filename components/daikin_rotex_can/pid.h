@@ -2,6 +2,7 @@
 
 #include "esphome/components/daikin_rotex_can/utils.h"
 #include <string>
+#include <cstdint>
 
 namespace esphome {
 namespace daikin_rotex_can {

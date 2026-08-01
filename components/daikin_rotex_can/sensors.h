@@ -10,6 +10,9 @@
 #include "esphome/components/number/number.h"
 #include "esphome/components/select/select.h"
 #include "esphome/components/switch/switch.h"
+#include <string>
+#include <functional>
+#include <cstdint>
 
 namespace esphome {
 namespace daikin_rotex_can {

@@ -8,6 +8,8 @@
 #include "esphome/core/hal.h"
 #include <functional>
 #include <stdint.h>
+#include <string>
+#include <array>
 #include <variant>
 #include <list>
 #include <type_traits>
