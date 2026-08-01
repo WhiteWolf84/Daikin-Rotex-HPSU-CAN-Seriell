@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <charconv>
 #include <cstdio>
+#include <cinttypes>
 //#include <cctype>
 
 namespace esphome {
@@ -36,7 +37,7 @@ std::vector<std::string> Utils::split(std::string const& str) {
 
 std::string Utils::to_hex(uint32_t value) {
     char hex_string[16];
-    std::snprintf(hex_string, sizeof(hex_string), "0x%02X", value);
+    std::snprintf(hex_string, sizeof(hex_string), "0x%02" PRIX32, value);
     return std::string(hex_string);
 }
 
@@ -181,7 +182,7 @@ void Utils::log_impl(std::string const& tag, std::string const& formatted) {
         // message), so the user's `logger.logs: { daikin_rotex_can: WARN }`
         // actually silences all of this. DEBUG level lets the global level gate
         // it too. No intermediate std::string is built for the millis prefix.
-        ESP_LOGD("daikin_rotex_can", "%s|millis: %u|%s", tag.c_str(), esphome::millis(), formatted.c_str());
+        ESP_LOGD("daikin_rotex_can", "%s|millis: %" PRIu32 "|%s", tag.c_str(), esphome::millis(), formatted.c_str());
     }
 }
 

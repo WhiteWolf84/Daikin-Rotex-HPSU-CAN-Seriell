@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstdint>
+#include <cinttypes>
 #include <string>
 #include <vector>
 #include <limits>
@@ -129,7 +130,7 @@ void DaikinRotexCanComponent::setup() {
     resolve_entity_cache();
     const uint32_t size = m_entity_manager.size();
 
-    ESP_LOGI(TAG, "entities.size: %d", size);
+    ESP_LOGI(TAG, "entities.size: %" PRIu32, size);
 
     CanSelect* p_optimized_defrosting = m_entity_manager.get_select(OPTIMIZED_DEFROSTING);
     if (p_optimized_defrosting != nullptr) {
@@ -450,7 +451,7 @@ void DaikinRotexCanComponent::dhw_run() {
 
 void DaikinRotexCanComponent::dump() {
     ESP_LOGI(TAG, "------------------------------------------");
-    ESP_LOGI(TAG, "------------ DUMP %d Entities ------------", m_entity_manager.size());
+    ESP_LOGI(TAG, "------------ DUMP %" PRIu32 " Entities ------------", m_entity_manager.size());
     ESP_LOGI(TAG, "------------------------------------------");
 
     for (auto index = 0; index < m_entity_manager.size(); ++index) {
@@ -595,7 +596,7 @@ std::string DaikinRotexCanComponent::recalculate_state(EntityBase* pEntity, std:
         if (flow_rate != nullptr && dhw_mixer_position != nullptr) {
             const bool is_error_state = flow_rate->state > 600.0f && dhw_mixer_position->state == 0.0f && tvbh_state > (tv_state + m_max_spread.tvbh_tv);
 
-            Utils::log(ERROR_CODE_TAG, "tv: %f, tvbh: %f, TvBH-Tv: %f, dhw: %f, flow: %f, dhw_ts: %d, millis: %d",
+            Utils::log(ERROR_CODE_TAG, "tv: %f, tvbh: %f, TvBH-Tv: %f, dhw: %f, flow: %f, dhw_ts: %" PRIu32 ", millis: %" PRIu32,
                 tv_state, tvbh_state, m_max_spread.tvbh_tv, dhw_mixer_position->state, flow_rate->state,
                     m_mixer_error_detection.get_error_detection_timestamp(),
                     esphome::millis());
@@ -610,7 +611,7 @@ std::string DaikinRotexCanComponent::recalculate_state(EntityBase* pEntity, std:
         if (flow_rate != nullptr && bpv != nullptr) {
             const bool is_error_state = flow_rate->state > 600.0f && bpv->state == 100.0f && tvbh_state > (tr_state + m_max_spread.tvbh_tr);
 
-            Utils::log(ERROR_CODE_TAG, "tvbh: %f, tr: %f, Tr-TvBH: %f, bpv: %f, flow: %f, bpv_ts: %d, millis: %d",
+            Utils::log(ERROR_CODE_TAG, "tvbh: %f, tr: %f, Tr-TvBH: %f, bpv: %f, flow: %f, bpv_ts: %" PRIu32 ", millis: %" PRIu32,
                 tvbh_state, tr_state, m_max_spread.tvbh_tr, bpv->state, flow_rate->state,
                     m_bpv_error_detection.get_error_detection_timestamp(),
                     esphome::millis());
@@ -642,7 +643,7 @@ std::string DaikinRotexCanComponent::recalculate_state(EntityBase* pEntity, std:
 
                 const bool is_error_state = state_compressor->state && m_temperature_spread_sensor->state < min_spread;
 
-                Utils::log(TAG, "betriebsart: %s, compressor: %d, spread: %f, min_spread: %f, is_good_case_detected: %d, error_ts: %d, millis: %d",
+                Utils::log(TAG, "betriebsart: %s, compressor: %d, spread: %f, min_spread: %f, is_good_case_detected: %d, error_ts: %" PRIu32 ", millis: %" PRIu32,
                     p_betriebs_art->state.c_str(), state_compressor->state, m_temperature_spread_sensor->state, min_spread,
                     m_spread_error_detection.is_good_case_detected(), m_spread_error_detection.get_error_detection_timestamp(), esphome::millis());
 
@@ -656,7 +657,7 @@ std::string DaikinRotexCanComponent::recalculate_state(EntityBase* pEntity, std:
         if (p_betriebs_art != nullptr && flow_rate != nullptr && dhw_mixer_position != nullptr && state_compressor != nullptr && tdhw1 != nullptr) {
             const bool is_error_state = p_betriebs_art->state == Translation::T_HOT_WATER_PRODUCTION && tdhw1->state < 48.0 && (flow_rate->state == 0.0f || dhw_mixer_position->state == 0.0f || !state_compressor->state);
             if (m_dhw_error_detection.handle_error_detection(is_error_state)) {
-                ESP_LOGE(TAG, "DHW error => flow: %d, mixer_pos: %d, state_compressor: %d", flow_rate->state, dhw_mixer_position->state, state_compressor->state);
+                ESP_LOGE(TAG, "DHW error => flow: %f, mixer_pos: %f, state_compressor: %d", flow_rate->state, dhw_mixer_position->state, state_compressor->state);
                 return new_state + "|" + Translation::T_MISSING_FLOW;
             }
         }
