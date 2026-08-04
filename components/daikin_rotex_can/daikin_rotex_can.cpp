@@ -466,7 +466,7 @@ void DaikinRotexCanComponent::dump() {
             } else if (CanTextSensor const* pTextSensor = entity_cast<CanTextSensor const>(pEntity)) {
                 ESP_LOGI(TAG, "%s: %s", pTextSensor->get_name().c_str(), pTextSensor->get_state().c_str());
             } else if (CanSelect const* pSelect = entity_cast<CanSelect const>(pEntity)) {
-                ESP_LOGI(TAG, "%s: %s", pSelect->get_name().c_str(), pSelect->current_option());
+                ESP_LOGI(TAG, "%s: %s", pSelect->get_name().c_str(), pSelect->current_option().c_str());
             }
         } else {
             ESP_LOGE(TAG, "Entity with index<%d> not found!", index);
