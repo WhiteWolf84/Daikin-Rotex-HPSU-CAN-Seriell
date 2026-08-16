@@ -548,6 +548,23 @@ void DaikinRotexCanComponent::update_supply_setpoint_regulated() {
 }
 
 void DaikinRotexCanComponent::handle(uint32_t can_id, std::vector<uint8_t> const& data) {
+    // Opt-in dump of the untruncated frame. This is the last point where the
+    // whole payload still exists: TMessage below holds 7 bytes, so an 8th byte
+    // and the real DLC are gone from here on, for every downstream log.
+    //
+    // Every frame on the bus reaches this function, so the filter is probed
+    // before formatting anything -- Utils::log() would build the string first
+    // and only then decide to drop it. Type "rawframe" into the log-filter text
+    // entity to switch it on; it costs one substring search otherwise.
+    if constexpr (Utils::logging_enabled()) {
+        if (Utils::filter_contains("rawframe")) {
+            Utils::log("rawframe", "can_id<%s> dlc<%u> data<%s>",
+                Utils::to_hex(can_id).c_str(),
+                static_cast<unsigned>(data.size()),
+                Utils::to_hex_frame(data).c_str());
+        }
+    }
+
     // A CAN frame carries 0..8 payload bytes (DLC). Never read past the end of
     // `data`: clamp to the smaller of the frame length and the fixed buffer, and
     // zero-fill the rest. Copying message.size() unconditionally would over-read

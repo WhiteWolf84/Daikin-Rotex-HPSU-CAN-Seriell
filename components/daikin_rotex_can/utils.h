@@ -42,6 +42,12 @@ public:
     }
 
     static std::string to_hex(TMessage const& data);
+    // A CAN frame carries up to 8 payload bytes; TMessage holds only 7. Lets the
+    // ingestion point dump the complete frame before it is truncated.
+    //
+    // Deliberately NOT an overload of to_hex(): TMessage is a std::array, so
+    // `to_hex({1, 2, 3})` would become ambiguous between array and vector.
+    static std::string to_hex_frame(std::vector<uint8_t> const& data);
     static bool find(std::string const& haystack, std::string const& needle);
     static std::vector<std::string> split(std::string const& str);
     static std::string to_hex(uint32_t value);
@@ -59,6 +65,12 @@ public:
         return ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG;
     }
 
+    // Cheap opt-in probe for very hot log sites. log() below always formats the
+    // message before log_impl() gets to filter it, so a site that fires on every
+    // CAN frame must not call it unconditionally. Checking the filter first costs
+    // one substring search and keeps the formatting off the hot path entirely.
+    static bool filter_contains(std::string const& token);
+
     template<typename... Args>
     static void log(std::string const& tag, std::string const& str_format, Args... args) {
         if (!logging_enabled()) {
@@ -71,6 +83,7 @@ public:
 
 private:
     static void log_impl(std::string const& tag, std::string const& formatted);
+    static std::string to_hex_impl(uint8_t const* data, size_t size);
 
     static std::string g_log_filter;
 };

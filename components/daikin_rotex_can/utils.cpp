@@ -41,23 +41,33 @@ std::string Utils::to_hex(uint32_t value) {
     return std::string(hex_string);
 }
 
-std::string Utils::to_hex(TMessage const& data) {
+std::string Utils::to_hex_impl(uint8_t const* data, size_t size) {
     std::stringstream str;
     str.setf(std::ios_base::hex, std::ios::basefield);
     str.setf(std::ios_base::uppercase);
     str.fill('0');
 
-    bool first = true;
-    for (uint8_t chr : data)
+    for (size_t i = 0; i < size; ++i)
     {
-        if (first) {
-            first = false;
-        } else {
+        if (i != 0) {
             str << " ";
         }
-        str << std::setw(2) << (unsigned short)(std::byte)chr;
+        str << std::setw(2) << (unsigned short)(std::byte)data[i];
     }
     return str.str();
+}
+
+std::string Utils::to_hex(TMessage const& data) {
+    return to_hex_impl(data.data(), data.size());
+}
+
+std::string Utils::to_hex_frame(std::vector<uint8_t> const& data) {
+    return to_hex_impl(data.data(), data.size());
+}
+
+bool Utils::filter_contains(std::string const& token) {
+    const std::string log_filter = g_log_filter;
+    return !log_filter.empty() && Utils::find(log_filter, token);
 }
 
 TMessage Utils::str_to_bytes(const std::string& str) {

@@ -78,6 +78,19 @@ bool TEntity::handle(uint32_t can_id, TMessage const& responseData) {
                     // value is unavailable/faulty. Skip it so we keep the last
                     // good state instead of publishing the bogus reading.
                     valid = false;
+                    // Say so. Without this the sentinel path emits nothing at
+                    // all (the log block below sits inside `if (valid)`), which
+                    // makes "the machine answered 'unavailable'" look exactly
+                    // like "the machine never answered" -- the two have very
+                    // different causes. Only the 7 bytes this layer sees are
+                    // available here; for the untruncated frame use "rawframe".
+                    if constexpr (Utils::logging_enabled()) {
+                        Utils::log("invalid", "%s can_id<%s> sentinel<%s> data<%s>",
+                            getName().c_str(),
+                            Utils::to_hex(can_id).c_str(),
+                            Utils::to_hex(static_cast<uint32_t>(value)).c_str(),
+                            Utils::to_hex(responseData).c_str());
+                    }
                 } else {
                     valid = handleValue(value, current, previous);
                 }
