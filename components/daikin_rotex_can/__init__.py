@@ -569,9 +569,11 @@ sensor_configuration = [
         # times that happened. The reference register map compensates 0x0930 as
         # `int16 + 32768 * this` (crycode-de/ioBroker.canbus, parser fa0930).
         #
-        # Diagnostic only: nothing consumes it yet, and it is deliberately left
-        # without an "invalid_value" so an 0x8000 sentinel stays visible as 32768
-        # instead of being silently swallowed.
+        # Measured: this unit answers 0x8000, the same "value unavailable"
+        # sentinel total_electrical_energy (0xC2FA) returns -- so no overflow
+        # compensation is available here and the counters need an ESP-side
+        # accumulator instead. The entity is kept rather than removed so a future
+        # pump firmware that does populate the register would show up on its own.
         "type": "sensor",
         "name": "energy_overflow_count",
         "accuracy_decimals": 0,
@@ -580,7 +582,8 @@ sensor_configuration = [
         "command": "31 00 FA C2 EE 00 00",
         "data_offset": 5,
         "data_size": 2,
-        "divider": 1
+        "divider": 1,
+        "invalid_value": 0x8000
     },
     {
         "type": "sensor",
