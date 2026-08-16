@@ -6,7 +6,11 @@ template:
         {% set thermische_leistung = states('sensor.rotex_thermische_leistung') | float(0) %}
         {% set stromverbrauch = states('sensor.wp_channel_a_power') | float(0) / 1000 %}
         {% set kompressor_status = states('binary_sensor.rotex_status_kompressor') %}
-        {% if kompressor_status == 'An' and stromverbrauch > 0 %}
+        {% set betriebsart = states('sensor.rotex_betriebsart') %}
+        {#- Abtauen ausschliessen: dabei entzieht die WP dem Heizkreis Waerme,
+            die thermische Leistung wird negativ. Der abs()-Zweig unten wuerde
+            daraus einen scheinbar guten COP machen. -#}
+        {% if kompressor_status == 'An' and stromverbrauch > 0 and betriebsart != 'Abtauen' %}
           {% if thermische_leistung >= 0 %}
             {{ (thermische_leistung / stromverbrauch) | round(2) }}
           {% else %}
