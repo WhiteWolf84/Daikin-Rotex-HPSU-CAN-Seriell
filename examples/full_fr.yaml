@@ -201,6 +201,9 @@ daikin_rotex_can:
       name: Energie Chauffage
     total_energy_produced:
       name: Total Energie Produite
+    energy_overflow_count:
+      name: Compteur Débordement Energie
+      entity_category: diagnostic
     qdhw:
       name: Energie pour ECS
     total_electrical_energy:

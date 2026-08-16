@@ -563,6 +563,26 @@ sensor_configuration = [
         "divider": 1
     },
     {
+        # Overflow counter for total_energy_produced (0x0930). The machine's
+        # energy counters are int16: once one passes 32767 a nightly housekeeping
+        # pass zeroes the register, and this counter is meant to record how many
+        # times that happened. The reference register map compensates 0x0930 as
+        # `int16 + 32768 * this` (crycode-de/ioBroker.canbus, parser fa0930).
+        #
+        # Diagnostic only: nothing consumes it yet, and it is deliberately left
+        # without an "invalid_value" so an 0x8000 sentinel stays visible as 32768
+        # instead of being silently swallowed.
+        "type": "sensor",
+        "name": "energy_overflow_count",
+        "accuracy_decimals": 0,
+        "state_class": STATE_CLASS_MEASUREMENT,
+        "icon": "mdi:counter",
+        "command": "31 00 FA C2 EE 00 00",
+        "data_offset": 5,
+        "data_size": 2,
+        "divider": 1
+    },
+    {
         "type": "sensor",
         "name": "energy_cooling",
         "device_class": DEVICE_CLASS_ENERGY,

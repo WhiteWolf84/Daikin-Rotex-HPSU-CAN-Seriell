@@ -202,6 +202,9 @@ daikin_rotex_can:
       name: Energie Heizung
     total_energy_produced:
       name: Erzeugte Energie Gesamt
+    energy_overflow_count:
+      name: Energie Überlauf Zähler
+      entity_category: diagnostic
     qdhw:
       name: Energie für WW
     total_electrical_energy:
