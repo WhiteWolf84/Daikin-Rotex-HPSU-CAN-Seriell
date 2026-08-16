@@ -131,6 +131,56 @@ Die Installation ist nun abgeschlossen, und das System kann nach den Schaubild *
 
 <br><br>
 
+# Fork-Hinweise (WhiteWolf84)
+
+Dieser Fork weicht in den folgenden Punkten von upstream ab. Alles Übrige folgt upstream.
+
+## Energiezähler
+
+Die sieben kWh-Zähler — `qch`, `qdhw`, `energy_cooling`, `total_energy_produced`, `qboh`, `ehs_for_ch`, `total_electrical_energy` — sind als `energy` + `total_increasing` deklariert, nicht als `energy_storage` + `measurement`.
+
+`energy_storage` beschreibt die in einer Batterie gespeicherte Ladung, und `measurement` lässt Home Assistant in den Langzeitstatistiken Mittel/Min/Max statt einer Summe ablegen. Zusammen hielten beide diese Sensoren aus dem Energie-Dashboard heraus.
+
+**Beim Update von einem Build mit den alten Klassen** meldet Home Assistant eine Reparatur wegen der geänderten State-Class. Die vorhandenen Langzeitstatistiken dieser Entitäten müssen gelöscht und neu aufgebaut werden; die Kurzzeit-Historie bleibt unberührt, und weder `entity_id` noch `unique_id` ändern sich.
+
+## Bekannte Einschränkung: die Zähler laufen über und werden genullt
+
+Diese Register sind maschinenseitig `int16`. An einer realen Anlage gemessen: ein Zähler läuft bis zu ~12 Stunden über 32767 hinaus weiter, dann setzt ihn ein nächtlicher Wartungsdurchlauf gegen 22:00 Uhr auf 0 zurück. Beobachtet: `total_energy_produced` 32804 → 0, `energy_cooling` 32801 → 0.
+
+Durch `total_increasing` wertet Home Assistant diesen Abfall als Zähler-Reset, die Energiebilanz bleibt ab da also korrekt — der absolute Gesamtstand geht aber verloren. Ihn zu rekonstruieren erfordert einen Akkumulator auf dem ESP, der **noch nicht implementiert ist**.
+
+Die Register werden **bewusst vorzeichenlos** gelesen, obwohl die Referenz-Registerkarte sie als `int16` deklariert. Vorzeichenbehaftet gelesen ergäbe sich im Überlauffenster ≈ −32768, was `total_increasing` beim folgenden Reset in einen Phantom-Sprung von +32735 kWh verwandelt.
+
+## `energy_overflow_count` (Register 0xC2EE)
+
+Die Referenz-Registerkarte rekonstruiert die erzeugte Gesamtenergie als `int16(0x0930) + 32768 × 0xC2EE`; 0xC2EE wäre demnach ein Überlaufzähler. Dieser Fork stellt ihn als Diagnose-Entität bereit, damit prüfbar ist, ob die eigene Anlage ihn befüllt.
+
+An der Anlage, gegen die dieser Fork entwickelt wird, antwortet er `0x8000` — dieselbe „Wert nicht verfügbar"-Kennung, die auch `0xC2FA` (`total_electrical_energy`) liefert. Er meldet daher `unknown`, und eine Überlaufkompensation steht nicht zur Verfügung. Die gesendete Anfrage entspricht Byte für Byte der der Referenzkarte, auf derselben CAN-ID — es liegt also keine fehlerhafte Anfrage vor.
+
+## CAN-Diagnose im Log
+
+Zwei zusätzliche Log-Pfade helfen, „die Anlage hat 'nicht verfügbar' geantwortet" von „die Anlage hat gar nicht geantwortet" zu unterscheiden:
+
+- `invalid` — greift, wenn ein Register seine Nicht-verfügbar-Kennung liefert. Meldet Entität, CAN-ID, Kennung und Nachrichtenbytes.
+- `rawframe` — gibt den ungekürzten Frame samt echter DLC aus, an der Stelle, an der die Nutzlast noch vollständig ist (`TMessage` fasst 7 Bytes, nachgelagerte Logs sehen ein achtes Byte nie).
+
+Beide erfordern einen **DEBUG-Build**: `Utils::logging_enabled()` ist `constexpr`, bei `logger: level: INFO` entfernt der Compiler diese Aufrufstellen vollständig und die Log-Filter-Entität bewirkt nichts.
+
+```yaml
+logger:
+  level: DEBUG
+  logs:
+    daikin_rotex_can: DEBUG
+    sensor: WARN
+    api: WARN
+```
+
+`rawframe` ist zusätzlich opt-in: `rawframe` in die Log-Filter-Text-Entität eintragen, denn jeder Frame auf dem Bus läuft durch diese Stelle. Ein brauchbarer Filter ist `rawframe|invalid|unhandled`. Das Feld danach wieder leeren.
+
+## Branches und Tags
+
+Ein einziger Strang: `main` und `dev` sind identisch und bewegen sich gemeinsam. Release-Tags tragen das Suffix `-wolf`, damit sie im selben Namensraum nie mit upstream-Tags kollidieren; ihre Annotation hält fest, ob der Build tatsächlich geflasht und betrieben wurde.
+
 ## Features:
 
 - 1x Warm Wasser Taste ohne Heizstab (es wird für 10s auf 70Grad gestellt und dann wieder auf den vorher eingestellten Wert zurück)

@@ -132,6 +132,56 @@ The installation is now complete, and the system can be connected to the Rotex/D
 
 <br><br>
 
+# Fork notes (WhiteWolf84)
+
+This fork diverges from upstream in the areas below. Everything else follows upstream.
+
+## Energy counters
+
+The seven kWh counters — `qch`, `qdhw`, `energy_cooling`, `total_energy_produced`, `qboh`, `ehs_for_ch`, `total_electrical_energy` — are declared as `energy` + `total_increasing`, not `energy_storage` + `measurement`.
+
+`energy_storage` describes the charge held in a battery, and `measurement` makes Home Assistant keep mean/min/max in long-term statistics instead of a sum. Together they kept these sensors out of the Energy dashboard.
+
+**If you update from a build that used the old classes**, Home Assistant raises a repair for the changed state class. The existing long-term statistics for those entities have to be deleted and rebuilt; the short-term history is unaffected, and no `entity_id` or `unique_id` changes.
+
+## Known limitation: the counters wrap and get zeroed
+
+These registers are `int16` on the machine side. Measured on a real unit: a counter keeps rising past 32767 for up to ~12 hours, then a nightly housekeeping pass around 22:00 resets the register to 0. Observed: `total_energy_produced` 32804 → 0, `energy_cooling` 32801 → 0.
+
+`total_increasing` makes Home Assistant treat that drop as a counter reset, so energy accounting stays correct from then on, but the absolute lifetime total is lost. Reconstructing it needs an accumulator on the ESP side, which is **not implemented yet**.
+
+Note that the registers are read **unsigned on purpose**, even though the reference register map declares them `int16`. Reading them signed would report ≈ −32768 during the overshoot window, which `total_increasing` turns into a phantom +32735 kWh spike at the following reset.
+
+## `energy_overflow_count` (register 0xC2EE)
+
+The reference register map reconstructs the produced-energy total as `int16(0x0930) + 32768 × 0xC2EE`, which would make 0xC2EE an overflow counter. This fork exposes it as a diagnostic entity so you can check whether your machine populates it.
+
+On the unit this fork is developed against it answers `0x8000` — the same "value unavailable" sentinel that `0xC2FA` (`total_electrical_energy`) returns — so it reports `unknown` and no overflow compensation is available. The request sent is byte-for-byte the one the reference map uses, on the same CAN id, so this is not a malformed request.
+
+## CAN diagnostics in the log
+
+Two extra log paths help tell "the machine answered 'unavailable'" apart from "the machine never answered":
+
+- `invalid` — fires when a register returns its unavailable sentinel. Reports the entity, CAN id, sentinel and message bytes.
+- `rawframe` — dumps the untruncated frame with its real DLC, at the point where the payload is still whole (`TMessage` holds 7 bytes, so downstream logs never see an 8th byte).
+
+Both require a **DEBUG build**: `Utils::logging_enabled()` is `constexpr`, so at `logger: level: INFO` the compiler removes these call sites entirely and the log-filter entity does nothing.
+
+```yaml
+logger:
+  level: DEBUG
+  logs:
+    daikin_rotex_can: DEBUG
+    sensor: WARN
+    api: WARN
+```
+
+`rawframe` is opt-in on top of that: type `rawframe` into the log-filter text entity to switch it on, because every frame on the bus passes through that point. A useful filter is `rawframe|invalid|unhandled`. Clear the field when you are done.
+
+## Branches and tags
+
+Single stream: `main` and `dev` are identical and move together. Release tags carry a `-wolf` suffix so they never collide with upstream tags in the same namespace, and their annotation says whether that build was actually flashed and run.
+
 ## Features:
 
 - Single Hot Water Button without Heating Element (sets to 70°C for 10 seconds and then reverts to the previously set temperature).
