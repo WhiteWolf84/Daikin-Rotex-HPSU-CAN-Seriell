@@ -1980,9 +1980,6 @@ CONFIG_SCHEMA = cv.Schema(
 
 async def to_code(config):
 
-    cg.set_cpp_standard("gnu++20")
-    cg.add_build_unflag("-fno-rtti")
-
     cg.add_global(cg.RawStatement("#include \"esphome/components/daikin_rotex_can/accessor.h\""))
     cg.add_global(cg.RawStatement("#include \"esphome/components/daikin_rotex_can/utils.h\""))
 
