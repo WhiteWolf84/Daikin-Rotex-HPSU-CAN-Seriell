@@ -24,7 +24,10 @@ class CanSensor : public sensor::Sensor, public TEntity, public Parented<SensorA
         float min;
         float max;
 
-        bool required() { return min != 0 && max != 0; }
+        // [0, 0] (the codegen default) declares no range. The previous test,
+        // min != 0 && max != 0, also skipped every range starting at 0, so
+        // e.g. target_supply_temperature [0, 90] was never checked.
+        bool contains(float value) const { return min >= max || (value >= min && value <= max); }
     };
 
 public:

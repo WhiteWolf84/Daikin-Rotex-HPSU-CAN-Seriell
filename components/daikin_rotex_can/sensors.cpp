@@ -37,16 +37,25 @@ bool CanSensor::handleValue(uint16_t value, TEntity::TVariant& current, TVariant
     }
 
     const float float_value = std::get<float>(current);
-    const bool valid = !m_range.required() || (float_value >= m_range.min && float_value <= m_range.max);
 
-    if (valid) {
+    if (m_range.contains(float_value)) {
         publish_state(float_value);
-    } else {
-        ESP_LOGE(CAN_SENSOR_TAG, "handleValue() => Sensor<%s> hex<%s> uint16<%d> float<%f> out of range[%f, %f]",
-            get_id().c_str(), Utils::to_hex(value).c_str(), value, float_value, m_range.min, m_range.max);
+        return true;
     }
 
-    return valid;
+    // Out of range means "no value", not "keep the last one": the machine uses
+    // such placeholders on purpose (target_supply_temperature reads 101 with
+    // no cooling demand, 0 in standby). Report unknown, and treat only the
+    // known -> unknown edge as a change so dependants (e.g. the setpoint-TV
+    // delta) recompute once and repeated placeholders stay silent.
+    const bool was_known = !std::isnan(state);
+    if (was_known) {
+        ESP_LOGW(CAN_SENSOR_TAG, "Sensor<%s> raw<%s> value<%f> outside [%f, %f], reporting unknown",
+            get_id().c_str(), Utils::to_hex(value).c_str(), float_value, m_range.min, m_range.max);
+        publish_state(NAN);
+    }
+    current = NAN;
+    return was_known;
 }
 
 void CanSensor::update(uint32_t millis) {

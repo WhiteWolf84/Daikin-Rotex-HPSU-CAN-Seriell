@@ -177,6 +177,12 @@ logger:
 
 `rawframe` ist zusätzlich opt-in: `rawframe` in die Log-Filter-Text-Entität eintragen, denn jeder Frame auf dem Bus läuft durch diese Stelle. Ein brauchbarer Filter ist `rawframe|invalid|unhandled`. Das Feld danach wieder leeren.
 
+## Wertebereiche und `target_supply_temperature`
+
+Upstream deklariert für einige Sensoren einen gültigen Bereich, die Prüfung lief aber bei Bereichen ab 0 nie (`circulation_pump`, `bypass_valve`, `dhw_mixer_position`, `target_supply_temperature`, `flow_rate`). Hier wird jeder deklarierte Bereich geprüft, und ein Wert außerhalb macht die Entität **unknown**, statt den letzten gültigen Wert zu halten. Das Log meldet den Übergang einmal, nicht bei jeder Abfrage.
+
+`target_supply_temperature` ist auf `[1, 90]` eingeengt. Über 30 Tage Verlauf meldete die Anlage `101` im Kühlbetrieb ohne Anforderung (auch beim Pumpennachlauf nach Verdichterstopp) und `0` im Standby; echte Sollwerte lagen bei 15–17,5 °C im Kühlbetrieb und 48 °C für Warmwasser. Beide Platzhalter erscheinen jetzt als unknown, ebenso `vorlauf_soll_tv_delta`, das zuvor z. B. 66,5 °C anzeigte.
+
 ## Branches und Tags
 
 Ein einziger Strang: `main` und `dev` sind identisch und bewegen sich gemeinsam. Release-Tags tragen das Suffix `-wolf`, damit sie im selben Namensraum nie mit upstream-Tags kollidieren; ihre Annotation hält fest, ob der Build tatsächlich geflasht und betrieben wurde.

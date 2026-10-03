@@ -521,7 +521,9 @@ void DaikinRotexCanComponent::update_supply_setpoint_regulated() {
     const float vorlauf_soll = pVorlaufSoll->state;
     const float vorlauf_soll_reguliert = m_supply_setpoint_regulated->state;
 
-    if (std::isnan(vorlauf_soll_reguliert) || vorlauf_soll_reguliert == 0) {
+    // An unknown setpoint or flow temperature would make every comparison
+    // below false and still send a request, so do nothing until both are known.
+    if (std::isnan(vorlauf_soll) || std::isnan(tv) || std::isnan(vorlauf_soll_reguliert) || vorlauf_soll_reguliert == 0) {
         return;
     }
 

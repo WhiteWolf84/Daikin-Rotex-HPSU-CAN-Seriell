@@ -494,7 +494,9 @@ sensor_configuration = [
         "data_offset": 3,
         "data_size": 2,
         "divider": 10.0,
-        "range": [0, 90],
+        # 0 (standby) and 101 (cooling, no demand) are placeholders for "no
+        # target", measured over 30 days; real targets were 15-48 °C.
+        "range": [1, 90],
         "update_entities": ["vorlauf_soll_tv_delta"]
     },
     {

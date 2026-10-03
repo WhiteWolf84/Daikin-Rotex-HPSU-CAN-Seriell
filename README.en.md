@@ -178,6 +178,12 @@ logger:
 
 `rawframe` is opt-in on top of that: type `rawframe` into the log-filter text entity to switch it on, because every frame on the bus passes through that point. A useful filter is `rawframe|invalid|unhandled`. Clear the field when you are done.
 
+## Value ranges and `target_supply_temperature`
+
+Upstream declares a valid range on some sensors, but the check never ran for ranges starting at 0 (`circulation_pump`, `bypass_valve`, `dhw_mixer_position`, `target_supply_temperature`, `flow_rate`). Here every declared range is enforced, and a reading outside it makes the entity **unknown** instead of holding the last good value. The log shows one warning when that starts, not one per poll.
+
+`target_supply_temperature` is narrowed to `[1, 90]`. Over 30 days of history the machine reported `101` while in cooling with no demand (including pump overrun after the compressor stops) and `0` in standby; real targets were 15–17.5 °C in cooling and 48 °C for hot water. Both placeholders now show as unknown, and so does `vorlauf_soll_tv_delta`, which used to report e.g. 66.5 °C.
+
 ## Branches and tags
 
 Single stream: `main` and `dev` are identical and move together. Release tags carry a `-wolf` suffix so they never collide with upstream tags in the same namespace, and their annotation says whether that build was actually flashed and run.
