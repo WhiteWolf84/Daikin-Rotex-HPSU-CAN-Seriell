@@ -62,8 +62,28 @@ void CanSensor::update(uint32_t millis) {
     TEntity::update(millis);
 
     if (m_smooth) {
-        const float dt = (static_cast<float>(esphome::millis()) - m_pid.get_last_update()) / 1000.0f; // seconds
+        const uint32_t now = esphome::millis();
+        // Unsigned subtraction stays correct across the 49.7-day millis() wrap;
+        // the previous float subtraction went negative there and froze the filter.
+        const float dt = static_cast<float>(now - m_pid.get_last_update()) / 1000.0f; // seconds
         if (dt > 10.0f) {
+            if (!std::isfinite(m_state)) {
+                // An input is unknown (at boot, or tv/tr/flow_rate out of range).
+                // PID::compute() would return 0 without advancing its clock, so dt
+                // would stay above 10 and the last value -- stale, or NaN at boot --
+                // would go out on every loop. Report unknown once, on the
+                // known -> unknown edge, drop the filter's history so it restarts
+                // from the real value, and rearm the 10 s cadence.
+                if (!std::isnan(state)) {
+                    ESP_LOGW(CAN_SENSOR_TAG, "Sensor<%s> input unknown, reporting unknown and resetting the filter",
+                        get_id().c_str());
+                    publish_state(NAN);
+                }
+                m_pid.reset(now);
+                m_smooth_state = NAN;
+                return;
+            }
+
             if (std::isnan(m_smooth_state)) {
                 m_smooth_state = m_state;
             }

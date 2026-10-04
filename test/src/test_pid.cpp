@@ -110,3 +110,53 @@ TEST(PIDTest, reach_setpoint) {
         current += pid.compute(setpoint, current, dt, logstr);
     EXPECT_NEAR(current, 5.0076870918, 0.00001);
 }
+TEST(PIDTest, reset_restarts_clock) {
+    PID pid(0.2, 0.05f, 0.05f, 0.2, 0.2, 0.1f);
+    pid.reset(123456u);
+    EXPECT_EQ(123456u, pid.get_last_update());
+}
+
+TEST(PIDTest, reset_clears_history) {
+    // After reset() the controller must behave exactly like a fresh one: no
+    // integral, filtered P/D or previous error carried over from before a gap.
+    std::string fresh_log, reset_log;
+
+    PID fresh(0.2, 0.05f, 0.05f, 0.2, 0.2, 0.1f);
+    fresh.compute(3.f, 1.f, 10.f, fresh_log);
+
+    PID used(0.2, 0.05f, 0.05f, 0.2, 0.2, 0.1f);
+    std::string ignored;
+    float current = 0.f;
+    for (int i = 0; i < 20; ++i)
+        current += used.compute(-5.f, current, 10.f, ignored);   // build up history
+    used.reset(0u);
+    used.compute(3.f, 1.f, 10.f, reset_log);
+
+    EXPECT_EQ(fresh_log, reset_log);
+}
+
+TEST(PIDTest, reset_then_matching_input_is_still) {
+    // CanSensor restarts its smoothed value from the input itself after a gap,
+    // so the first step after reset() must not move it.
+    PID pid(0.2, 0.05f, 0.05f, 0.2, 0.2, 0.1f);
+    std::string logstr;
+    float current = 0.f;
+    for (int i = 0; i < 20; ++i)
+        current += pid.compute(-5.f, current, 10.f, logstr);
+    pid.reset(0u);
+
+    current = 2.5f;
+    EXPECT_FLOAT_EQ(0.f, pid.compute(2.5f, current, 10.f, logstr));
+}
+
+TEST(PIDTest, dt_survives_millis_wrap) {
+    // CanSensor computes dt as uint32 now - last_update. Across the 49.7-day
+    // millis() wrap that stays a small positive number; the former float
+    // subtraction went hugely negative and froze the filter for good.
+    const uint32_t last = 0xFFFFF000u;           // 4096 ms before the wrap
+    const uint32_t now = 0x00002000u;            // 8192 ms after it
+    const float dt_new = static_cast<float>(now - last) / 1000.0f;
+    const float dt_old = (static_cast<float>(now) - last) / 1000.0f;
+    EXPECT_NEAR(12.288f, dt_new, 0.001f);
+    EXPECT_LT(dt_old, 0.f);
+}

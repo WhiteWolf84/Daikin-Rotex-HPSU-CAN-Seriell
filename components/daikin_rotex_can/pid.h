@@ -29,6 +29,17 @@ public:
 
     uint32_t get_last_update() const { return m_last_update; }
 
+    // Drop the controller's history and restart its dt clock at `now`. Used when
+    // the input becomes unknown: once it returns, the filter starts from the
+    // real value instead of chasing a state from before the gap.
+    void reset(uint32_t now) {
+        m_previous_error = 0.0f;
+        m_integral = 0.0f;
+        m_filtered_p = 0.0f;
+        m_filtered_d = 0.0f;
+        m_last_update = now;
+    }
+
     void set_logging(bool logging) { m_logging = logging; }
 
 private:

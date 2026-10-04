@@ -671,7 +671,12 @@ std::string DaikinRotexCanComponent::recalculate_state(EntityBase* pEntity, std:
                     p_betriebs_art->state.c_str(), state_compressor->state, m_temperature_spread_sensor->state, min_spread,
                     m_spread_error_detection.is_good_case_detected(), m_spread_error_detection.get_error_detection_timestamp(), esphome::millis());
 
-                if (m_spread_error_detection.handle_error_detection(is_error_state)) {
+                // An unknown spread (tv/tr unknown, see CanSensor::update) or min_spread (tv
+                // unknown) says nothing about the valve. `NaN < x` is false, so evaluating it
+                // would count as a good case and, with stop_detection_in_good_case, switch the
+                // detection off until the compressor next changes state. Skip it instead.
+                const bool spread_known = !std::isnan(m_temperature_spread_sensor->state) && !std::isnan(min_spread);
+                if (spread_known && m_spread_error_detection.handle_error_detection(is_error_state)) {
                     ESP_LOGE(TAG, "Low spread!");
                     return new_state + "|" + Translation::T_LOW_TEMPERATURE_SPREAD;
                 }
