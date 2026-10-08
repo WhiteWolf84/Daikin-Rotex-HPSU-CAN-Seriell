@@ -92,9 +92,12 @@ void CanSensor::update(uint32_t millis) {
             m_smooth_state += m_pid.compute(m_state, m_smooth_state, dt, logstr);
             Utils::log("PID", "%s: %s, val: %f", get_id().c_str(), logstr.c_str(), m_smooth_state);
 
-            m_smooth_state = std::ceil(m_smooth_state * 100.0) / 100.0;
-
-            publish_state(m_smooth_state);
+            // Round only what is published, to the nearest hundredth. Rounding the
+            // filter state itself (formerly with ceil) fed the quantisation back
+            // into the PID: a persistent +0.01/-0.0/-0.01 limit cycle at zero flow,
+            // and an upward bias that grows with input noise. Adding 0.0f turns a
+            // rounded -0.0 into +0.0, so a stopped pump never reads "-0.0".
+            publish_state(std::round(m_smooth_state * 100.0f) / 100.0f + 0.0f);
         }
     }
 }
